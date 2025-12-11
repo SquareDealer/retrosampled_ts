@@ -1,0 +1,73 @@
+/* Прогресс-бар как белая шапка над мини-плеером */
+.mini-player__progress {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 56px; /* над мини-плеером */
+  height: 4px;
+  background: transparent;
+  z-index: 101;
+  box-shadow: 0 -1px 8px #00000020;
+}
+
+.mini-player__progress-fill {
+  background: #FFFFFF;
+  height: 100%;
+  width: 0%; /* будет меняться inline-стилем */
+}
+
+/* Закрепляем мини-плеер снизу */
+.mini-player {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 100;
+  background: linear-gradient(
+    to bottom,
+    rgba(17, 17, 17, 0) 0%,
+    rgba(17, 17, 17, 0.3) 70%,
+    rgba(0, 0, 0, 1) 100%
+  );
+  border-top: 1px solid #FFFFFF20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+  height: 56px;
+  font-family: "Roboto Mono", monospace;
+  color: #fff;
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(2px);
+  /* Для поддержки старых браузеров можно добавить fallback */
+}
+
+.mini-player__title {
+  font-size: 16px;
+  color: #FFFFFF;
+  font-weight: 500;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  max-width: 320px;
+}
+
+.mini-player button {
+  background: #fff;
+  color: #111;
+  border: none;
+  border-radius: 999px;
+  font-size: 14px;
+  font-family: inherit;
+  font-weight: 700;
+  padding: 8px 20px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px #00000020;
+  transition: background 0.2s, color 0.2s, opacity 0.2s;
+}
+
+.mini-player button:hover {
+  background: #f4dd00;
+  color: #000;
+  opacity: 0.9;
+}

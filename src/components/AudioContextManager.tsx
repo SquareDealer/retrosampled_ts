@@ -4,113 +4,231 @@ import React, {
   useState,
   PropsWithChildren,
   useCallback,
+  useContext,
+  useEffect,
 } from "react";
 import WaveSurfer from "wavesurfer.js";
+import { Sample } from "../types/Sample";
 
-interface PlayerState {
-  currentId: string | null;
+// ─────────────────────────────────────────────────────────────
+// Types & Interfaces
+// ─────────────────────────────────────────────────────────────
+
+export interface PlayerState {
+  currentId: string | null; // id текущего семпла (для удобства снаружи)
   isPlaying: boolean;
-  progress: number;
+  progress: number; // 0..1
+  isReady: boolean; // загружен ли текущий трек в плеер
 }
 
-interface Sample {
-  id: string | number;
-  authorId: string | number;
-  author?: string;
-  title: string;
-  tags: string[];
-  audioUrl: string;
-  time: string;
-  key: string;
-  bpm: string | number;
-  type?: string;
-  price: string | number;
-}
-
-interface AudioContextManager {
+export interface AudioContextManager {
   state: PlayerState;
   currentSample: Sample | null;
 
-  play: (sample: Sample, options?: any) => void;
+  // можно вызывать как play(sample) или play(sample, startProgress)
+  play: (sample: Sample, startProgress?: number) => void;
   togglePlay: () => void;
   seekTo: (progress: number) => void;
-
-  register(id: string, wavesurfer: WaveSurfer): void;
-  unregister(id: string): void;
 }
+
+// ─────────────────────────────────────────────────────────────
+// Context
+// ─────────────────────────────────────────────────────────────
 
 const AudioManagerContext = createContext<AudioContextManager | null>(null);
 
+// ─────────────────────────────────────────────────────────────
+// Provider Component (один глобальный WaveSurfer внутри)
+// ─────────────────────────────────────────────────────────────
+
 export const AudioManagerProvider: React.FC<PropsWithChildren> = ({ children }) => {
-  const players = useRef(new Map<string, WaveSurfer>());
+  const wsRef = useRef<WaveSurfer | null>(null);
+
+  const currentIdRef = useRef<string | null>(null);
+  const isReadyRef = useRef<boolean>(false);
+
+  // сюда будем класть прогресс, с которого хотим стартовать новый семпл
+  const pendingStartProgressRef = useRef<number | null>(null);
 
   const [currentSample, setCurrentSample] = useState<Sample | null>(null);
   const [state, setState] = useState<PlayerState>({
     currentId: null,
     isPlaying: false,
     progress: 0,
+    isReady: false,
   });
 
-  const register = useCallback((id: string, ws: WaveSurfer) => {
-    players.current.set(id.toString(), ws);
+  // ─────────────────────────────────────────────────────────────
+  // Инициализация глобального WaveSurfer
+  // ─────────────────────────────────────────────────────────────
+
+  useEffect(() => {
+    const container = document.createElement("div");
+
+    const ws = WaveSurfer.create({
+      container,
+      height: 0,
+      interact: false,
+      cursorWidth: 0,
+      normalize: true,
+    });
+
+    wsRef.current = ws;
+
+    ws.on("ready", () => {
+      isReadyRef.current = true;
+
+      let startP = pendingStartProgressRef.current ?? 0;
+      startP = Math.max(0, Math.min(1, startP));
+
+      if (startP > 0) {
+        ws.seekTo(startP);
+      }
+
+      setState((prev) => ({
+        ...prev,
+        isReady: true,
+        progress: startP,
+      }));
+
+      ws.play();
+      setState((prev) => ({
+        ...prev,
+        isPlaying: true,
+      }));
+
+      pendingStartProgressRef.current = null;
+    });
+
+    ws.on("audioprocess", () => {
+      if (!isReadyRef.current || !currentIdRef.current) return;
+
+      const duration = ws.getDuration() || 1;
+      const time = ws.getCurrentTime();
+      const progress = time / duration;
+
+      setState((prev) => ({
+        ...prev,
+        progress,
+      }));
+    });
+
+    ws.on("finish", () => {
+      setState((prev) => ({
+        ...prev,
+        isPlaying: false,
+        progress: 0,
+      }));
+    });
+
+    return () => {
+      ws.destroy();
+      wsRef.current = null;
+      currentIdRef.current = null;
+      isReadyRef.current = false;
+      pendingStartProgressRef.current = null;
+    };
   }, []);
 
-  const unregister = useCallback((id: string) => {
-    players.current.delete(id.toString());
-  }, []);
+  // ─────────────────────────────────────────────────────────────
+  // Playback Control Methods
+  // ─────────────────────────────────────────────────────────────
 
-  const play = useCallback((sample: Sample) => {
-    const id = sample.id.toString();
-    const ws = players.current.get(id);
+  const play = useCallback(
+  (sample: Sample, startProgress?: number) => {
+    const ws = wsRef.current;
     if (!ws) return;
 
-    // stop previous
-    if (state.currentId && state.currentId !== id) {
-      const prev = players.current.get(state.currentId);
-      prev?.pause();
+    const newId = sample.id.toString();
+    const clampedStart =
+      startProgress != null
+        ? Math.max(0, Math.min(1, startProgress))
+        : undefined;
+
+    // Если кликаем по тому же семплу — просто play/pause
+    if (currentIdRef.current && currentIdRef.current === newId && currentSample) {
+      if (!isReadyRef.current) return;
+
+      ws.playPause();
+      const nowPlaying = ws.isPlaying();
+      setState((prev) => ({
+        ...prev,
+        isPlaying: nowPlaying,
+      }));
+      return;
     }
+
+    // 👇 НОВЫЙ СЕМПЛ
+
+    currentIdRef.current = newId;
+    isReadyRef.current = false;
+    pendingStartProgressRef.current =
+      clampedStart != null ? clampedStart : 0;
+
+    ws.stop();
+    ws.seekTo(0);
 
     setCurrentSample(sample);
-    setState(prev => ({
-      ...prev,
-      currentId: id,
+    setState({
+      currentId: newId,
       isPlaying: true,
-      progress: 0
-    }));
+      // 🔥 ключевая строка — до ready сразу показываем нужный прогресс
+      progress: clampedStart != null ? clampedStart : 0,
+      isReady: false,
+    });
 
-    ws.play();
-  }, [state.currentId]);
+    ws.load(sample.audioUrl);
+  },
+  [currentSample]
+);
 
   const togglePlay = useCallback(() => {
-    const id = state.currentId;
-    if (!id) return;
-
-    const ws = players.current.get(id);
+    const ws = wsRef.current;
     if (!ws) return;
 
-    if (state.isPlaying) {
-      ws.pause();
-      setState(prev => ({ ...prev, isPlaying: false }));
-    } else {
-      ws.play();
-      setState(prev => ({ ...prev, isPlaying: true }));
-    }
-  }, [state]);
+    if (!isReadyRef.current) return;
+
+    ws.playPause();
+    const nowPlaying = ws.isPlaying();
+    setState((prev) => ({
+      ...prev,
+      isPlaying: nowPlaying,
+    }));
+  }, []);
 
   const seekTo = useCallback((progress: number) => {
-    if (!state.currentId) return;
-    const ws = players.current.get(state.currentId);
-    if (ws) ws.seekTo(progress);
-  }, [state.currentId]);
+  const ws = wsRef.current;
+  if (!ws) return;
 
-  const value = {
+  // если трек ещё не готов, лучше игнорировать навигацию
+  if (!isReadyRef.current) return;
+
+  const clamped = Math.max(0, Math.min(1, progress));
+
+  // был ли трек в данный момент в состоянии "играет"
+  const wasPlaying = ws.isPlaying();
+
+  // перемотка
+  ws.seekTo(clamped);
+
+  // если раньше стоял на паузе — запускаем воспроизведение с новой позиции
+  if (!wasPlaying) {
+    ws.play();
+  }
+
+  setState((prev) => ({
+    ...prev,
+    progress: clamped,
+    isPlaying: true, // после навигации всегда играем
+    }));
+  }, []);
+
+  const value: AudioContextManager = {
     state,
     currentSample,
     play,
     togglePlay,
     seekTo,
-    register,
-    unregister
   };
 
   return (
@@ -118,4 +236,16 @@ export const AudioManagerProvider: React.FC<PropsWithChildren> = ({ children }) 
       {children}
     </AudioManagerContext.Provider>
   );
+};
+
+// ─────────────────────────────────────────────────────────────
+// Hook to Access AudioManager
+// ─────────────────────────────────────────────────────────────
+
+export const useAudioContextManager = (): AudioContextManager => {
+  const context = useContext(AudioManagerContext);
+  if (!context) {
+    throw new Error("useAudioContextManager must be used within AudioManagerProvider");
+  }
+  return context;
 };

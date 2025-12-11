@@ -10,4 +10,5 @@ export interface Sample {
   bpm: string | number;
   type?: string;
   price: string | number;
+  jsonPeaksUrl?: string;
 }

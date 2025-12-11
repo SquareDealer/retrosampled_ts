@@ -1,0 +1,232 @@
+/* ─────────────────────────────────────────────────────────────
+   SampleRow Component Styles
+   ───────────────────────────────────────────────────────────── */
+
+.sample-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: #1a1a1a;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  transition: background-color 0.2s ease;
+}
+
+.sample-row:hover {
+  background: #222;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Left Section: Avatar, Author, Title, Tags
+   ───────────────────────────────────────────────────────────── */
+
+.sample-row__left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 200px;
+  flex-shrink: 0;
+}
+
+.sample-row__avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.sample-row__info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.sample-row__author {
+  color: #888;
+  font-size: 12px;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.sample-row__author:hover {
+  color: #4a90e2;
+}
+
+.sample-row__title {
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sample-row__tags {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.sample-row__tags .tag {
+  background: #333;
+  color: #aaa;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Center Section: Waveform Player + Metadata
+   ───────────────────────────────────────────────────────────── */
+
+.sample-row__center {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.sample-row__media {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sample-row__play {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #4a90e2;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+.sample-row__play:hover {
+  background: #357abd;
+  transform: scale(1.05);
+}
+
+.sample-row__play:active {
+  transform: scale(0.95);
+}
+
+.sample-row__play-icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+
+.sample-row__waveform {
+  flex: 1;
+  min-width: 0;
+  height: 50px;
+}
+
+.sample-row__metadata {
+  display: flex;
+  gap: 16px;
+  font-size: 12px;
+  color: #888;
+}
+
+.sample-row__time,
+.sample-row__key,
+.sample-row__bpm {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Right Section: Price + Like
+   ───────────────────────────────────────────────────────────── */
+
+.sample-row__right {
+  flex-shrink: 0;
+}
+
+.sample-row__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sample-row__price {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #ffd700;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.sample-row__coin-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.sample-row__like {
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: 1px solid #444;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+.sample-row__like:hover {
+  border-color: #e24a4a;
+  background: rgba(226, 74, 74, 0.1);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   SampleList Styles
+   ───────────────────────────────────────────────────────────── */
+
+.sample-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sample-list--empty {
+  padding: 40px;
+  text-align: center;
+}
+
+.sample-list__empty-message {
+  color: #666;
+  font-size: 14px;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Responsive Adjustments
+   ───────────────────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .sample-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .sample-row__left {
+    min-width: 0;
+  }
+
+  .sample-row__center {
+    order: -1;
+  }
+
+  .sample-row__right {
+    align-self: flex-end;
+  }
+}

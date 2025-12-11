@@ -1,0 +1,23 @@
+.waveform-wrapper {
+  position: relative;
+  width: 100%;
+  height: 60px; /* подгоняй под свою картинку */
+  overflow: hidden;
+}
+
+.waveform-inner {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  filter: contrast(1.2);
+}
+
+.waveform-progress-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.5); /* белёсая маска */
+  mix-blend-mode: screen; /* как у splice */
+  pointer-events: none;
+  transition: width 0.05s linear;
+}

@@ -1,12 +1,15 @@
-import UserComponent from './components/UserComponent';
-import UserSamplesSection from './components/UserSamplesSection';
 import UserPage from './components/UserPage';
+import { AudioManagerProvider } from './components/AudioContextManager';
+import MiniPlayer from './components/MiniPlayer';
+
 
 function App() {
+  // Берем первый моковый семпл для примера
   return (
-    <>
-        <UserPage />
-    </>
+    <AudioManagerProvider>
+      <UserPage/>
+      <MiniPlayer />
+    </AudioManagerProvider>
   )
 }
 
