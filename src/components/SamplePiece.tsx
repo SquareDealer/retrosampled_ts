@@ -37,7 +37,7 @@ export const SamplePiece: React.FC<SamplePieceProps> = ({ sample }) => {
   };
 
   // Click on entire container to play sample
-  const handleContainerClick = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleContainerClick = () => {
     // Не запускаем, если уже играет этот семпл
     if (!isCurrent) {
       play(sample);
