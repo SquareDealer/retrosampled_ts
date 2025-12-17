@@ -4,7 +4,7 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { createVerify } from 'crypto';
+import { createVerify, createPublicKey } from 'crypto';
 import https from 'https';
 
 @Injectable()
@@ -40,7 +40,9 @@ export class SupabaseAuthGuard implements CanActivate {
         throw new UnauthorizedException('Token expired');
       }
 
+      // Сохраняем оригинальный токен для использования в сервисах
       req.user = payload;
+      req.token = token;
 
       return true;
     } catch (error) {
@@ -70,8 +72,7 @@ export class SupabaseAuthGuard implements CanActivate {
 
   private jwkToPem(jwk: any): string {
     // Преобразование JWK в PEM формат (упрощённо)
-    const crypto = require('crypto');
-    const publicKey = crypto.createPublicKey({
+    const publicKey = createPublicKey({
       key: jwk,
       format: 'jwk',
     });
