@@ -1,9 +1,18 @@
 # Retrosamples
 
 ## Структура
-- `/frontend` — клиент (React)
-- `/backend` — сервер (NestJS)
+- `apps/frontend` — клиент (React + Vite)
+- `apps/backend` — сервер (NestJS)
+- `packages` — общие пакеты (подготовлено для shared-types/config)
 
-## Запуск
-- `cd frontend && npm start`
-- `cd backend && npm run start:dev`
+## Быстрый старт
+1. Установите pnpm (если еще не установлен)
+2. Из корня репозитория выполните `pnpm install`
+
+## Команды
+- `pnpm dev` — запуск frontend и backend параллельно
+- `pnpm dev:frontend` — запуск только frontend
+- `pnpm dev:backend` — запуск только backend
+- `pnpm build` — сборка всех приложений через Turbo
+- `pnpm lint` — линтинг всех приложений через Turbo
+- `pnpm test` — запуск тестов всех приложений через Turbo

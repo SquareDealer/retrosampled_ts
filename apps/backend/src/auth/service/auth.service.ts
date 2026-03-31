@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
 
 type SupabaseSessionResponse = {
   access_token: string;
@@ -95,8 +95,10 @@ export class AuthService {
         anonKeyPrefix: this.anonKey.substring(0, 10),
         error: errorData,
       });
-      throw new UnauthorizedException(
-        errorData.error_description || 'Sign up failed',
+      
+      // Для остальных ошибок регистрации - 400 Bad Request
+      throw new BadRequestException(
+        errorData.error_description || errorData.error || 'Sign up failed',
       );
     }
 
@@ -134,8 +136,8 @@ export class AuthService {
 
     if (!res.ok) {
       const error = (await res.json()) as SupabaseErrorResponse;
-      throw new UnauthorizedException(error.error_description || 'Failed to send reset email');
-      }
+      throw new BadRequestException(error.error_description || 'Failed to send reset email');
+    }
   }
 
   async resetPasswordWithToken(token: string, newPassword: string) {
@@ -155,7 +157,7 @@ export class AuthService {
 
     if (!res.ok) {
       const error = (await res.json()) as SupabaseErrorResponse;
-      throw new UnauthorizedException(error.error_description || 'Failed to reset password');
+      throw new BadRequestException(error.error_description || 'Failed to reset password');
     }
   }
 
@@ -176,7 +178,7 @@ export class AuthService {
 
     if (!res.ok) {
       const error = (await res.json()) as SupabaseErrorResponse;
-      throw new UnauthorizedException(error.error_description || 'Failed to change password');
+      throw new BadRequestException(error.error_description || 'Failed to change password');
     }
   }
 
@@ -193,7 +195,7 @@ export class AuthService {
 
     if (!res.ok) {
       const error = (await res.json()) as SupabaseErrorResponse;
-      throw new UnauthorizedException(error.error_description || 'Failed to update user');
+      throw new BadRequestException(error.error_description || 'Failed to update user');
     }
     return res.json();
   }
@@ -212,7 +214,7 @@ export class AuthService {
     });
 
     if (!res.ok) {
-      throw new UnauthorizedException('Failed to delete account');
+      throw new BadRequestException('Failed to delete account');
     }
   }
 
@@ -232,7 +234,7 @@ export class AuthService {
 
     if (!res.ok) {
       const error = (await res.json()) as SupabaseErrorResponse;
-      throw new UnauthorizedException(error.error_description || 'Failed to send email');
+      throw new BadRequestException(error.error_description || 'Failed to send email');
     }
   }
 }

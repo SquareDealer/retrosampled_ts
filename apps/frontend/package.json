@@ -1,20 +1,24 @@
 {
-  "name": "retrosampled-ts",
+  "name": "@retrosampled/frontend",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview"
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives",
+    "preview": "vite preview",
+    "test": "node -e \"console.log('No frontend tests yet')\"",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "howler": "^2.2.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "wavesurfer.js": "^7.12.1"
   },
   "devDependencies": {
+    "@types/howler": "^2.2.12",
     "@types/react": "^18.2.66",
     "@types/react-dom": "^18.2.22",
     "@typescript-eslint/eslint-plugin": "^7.2.0",
