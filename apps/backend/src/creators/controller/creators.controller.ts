@@ -1,7 +1,7 @@
 import { Controller } from "@nestjs/common";
 import { CreatorsService } from "../service/creators.service";
 import { Post, Req, UseGuards } from "@nestjs/common";
-import { SupabaseAuthGuard } from "src/auth/supabase-auth.guard";
+import { SupabaseAuthGuard } from "../../auth/supabase-auth.guard";
 
 
 @Controller('creators')

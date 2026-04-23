@@ -45,6 +45,7 @@ export const AudioManagerProvider: React.FC<PropsWithChildren> = ({ children }) 
   const howlRef = useRef<Howl | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const currentIdRef = useRef<string | null>(null);
+  const playbackSessionRef = useRef(0);
 
   const [currentSample, setCurrentSample] = useState<Sample | null>(null);
   const [state, setState] = useState<PlayerState>({
@@ -102,7 +103,9 @@ export const AudioManagerProvider: React.FC<PropsWithChildren> = ({ children }) 
   useEffect(() => {
     return () => {
       stopProgressLoop();
+      playbackSessionRef.current += 1;
       if (howlRef.current) {
+        howlRef.current.off();
         howlRef.current.unload();
         howlRef.current = null;
       }
@@ -128,7 +131,6 @@ export const AudioManagerProvider: React.FC<PropsWithChildren> = ({ children }) 
         
         if (howl.playing()) {
           howl.pause();
-          stopProgressLoop();
           setState((prev) => ({
             ...prev,
             isPlaying: false,
@@ -145,10 +147,13 @@ export const AudioManagerProvider: React.FC<PropsWithChildren> = ({ children }) 
       }
 
       // 👇 НОВЫЙ СЕМПЛ
+      const sessionId = playbackSessionRef.current + 1;
+      playbackSessionRef.current = sessionId;
 
       // Останавливаем и выгружаем старый
       if (howlRef.current) {
         stopProgressLoop();
+        howlRef.current.off();
         howlRef.current.unload();
         howlRef.current = null;
       }
@@ -163,11 +168,22 @@ export const AudioManagerProvider: React.FC<PropsWithChildren> = ({ children }) 
         isReady: false,
       });
 
+      const isSessionActive = (activeHowl: Howl) => {
+        const activeHowlRef = howlRef.current;
+        return (
+          playbackSessionRef.current === sessionId &&
+          (activeHowlRef === null || activeHowlRef === activeHowl) &&
+          currentIdRef.current === newId
+        );
+      };
+
       // Создаем новый Howl
       const howl = new Howl({
         src: [sample.audioUrl],
         html5: true,
         onload: () => {
+          if (!isSessionActive(howl)) return;
+
           setState((prev) => ({
             ...prev,
             isReady: true,
@@ -181,19 +197,44 @@ export const AudioManagerProvider: React.FC<PropsWithChildren> = ({ children }) 
 
           // Запускаем воспроизведение
           howl.play();
-          
-          // Запускаем loop после небольшой задержки, чтобы howl успел начать воспроизведение
-          setTimeout(() => {
-            startProgressLoop();
+        },
+        onplay: () => {
+          if (!isSessionActive(howl)) return;
+          startProgressLoop();
+          setState((prev) => ({
+            ...prev,
+            isPlaying: true,
+          }));
+        },
+        onpause: () => {
+          if (!isSessionActive(howl)) return;
+          stopProgressLoop();
+          setState((prev) => ({
+            ...prev,
+            isPlaying: false,
+          }));
+        },
+        onseek: () => {
+          if (!isSessionActive(howl)) return;
+
+          const seek = howl.seek() as number;
+          const duration = howl.duration();
+
+          if (duration > 0 && Number.isFinite(seek)) {
             setState((prev) => ({
               ...prev,
-              isPlaying: true,
+              progress: Math.max(0, Math.min(1, seek / duration)),
             }));
-          }, 10);
+          }
+
+          if (howl.playing()) {
+            startProgressLoop();
+          }
         },
         onend: () => {
+          if (!isSessionActive(howl)) return;
+
           stopProgressLoop();
-          currentIdRef.current = null;
           setState((prev) => ({
             ...prev,
             isPlaying: false,
@@ -201,6 +242,8 @@ export const AudioManagerProvider: React.FC<PropsWithChildren> = ({ children }) 
           }));
         },
         onloaderror: (_, err) => {
+          if (!isSessionActive(howl)) return;
+
           console.error("Ошибка загрузки аудио:", err);
           stopProgressLoop();
           setState((prev) => ({
@@ -210,14 +253,20 @@ export const AudioManagerProvider: React.FC<PropsWithChildren> = ({ children }) 
           }));
         },
         onplayerror: (_, err) => {
+          if (!isSessionActive(howl)) return;
+
           console.error("Ошибка воспроизведения:", err);
           stopProgressLoop();
+          setState((prev) => ({
+            ...prev,
+            isPlaying: false,
+          }));
         },
       });
 
       howlRef.current = howl;
     },
-    [currentSample, startProgressLoop, stopProgressLoop]
+    [startProgressLoop, stopProgressLoop]
   );
 
   const togglePlay = useCallback(() => {

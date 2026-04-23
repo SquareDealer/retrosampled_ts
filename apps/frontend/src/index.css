@@ -14,242 +14,12 @@ body {
   border-top: #FFFFFF20 solid 1px;
 }
 
-/* общий ряд */
-.sample-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: clamp(8px, 1.5vw, 20px);         /* был 20px */
-  padding-block: clamp(8px, 1.125vw, 24px);
-  border-bottom: 1px solid #191919;
-  font-size: 13px;
-}
-
-/* ховер по всей строке */
-.sample-row:hover {
-  background: #0a0a0a;
-}
-
-/* левая часть */
-.sample-row__left {
-  display: flex;
-  align-items: center;
-  gap: clamp(6px, 1vw, 12px);           /* был 12px */
-  width: 100%;
-  max-width: 300px;
-  min-width: 240px;
-  overflow: hidden;
-  white-space: nowrap;  
-}
-
-.sample-row__center {
-  display: flex;
-  align-items: center;
-  gap: clamp(12px, 2vw, 28px);          /* был 28px */
-  margin-left: auto;
-  flex-shrink: 0;
-}
-
-.sample-row__right {
-  display: flex;
-  align-items: center;
-  gap: clamp(12px, 2vw, 28px);          /* был 28px */
-  margin-left: auto;
-  flex-shrink: 0;
-}
-
-.sample-row__avatar {
-  width: 50px;
-  height: 50px;
-  border-radius: 999px;
-  object-fit: cover;
-}
-
-.sample-row__info {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.sample-row__author {
-  font-size: 14px;
-  color: #FFFFFF60;
-  text-decoration: none;
-  transition: color 0.2s;
-}
-
-.sample-row__author:hover {
-  color: #fff;
-}
-
-.sample-row__title {
-  font-size: 14px;
-
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  display: block;
-  flex: 1;
-}
-
-.sample-row__tags {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
+/* .tag — shared between SampleRow and other components */
 .tag {
-  padding: 2px 4px;
+  padding: clamp(1px, 0.2vw, 2px) clamp(3px, 0.6vw, 5px);
   color: #FFFFFF60;
   font-size: 10px;
   border: 1px solid #ffffff20;
-}
-
-/* play */
-.sample-row__play {
-  border: none;
-  background: none;
-  cursor: pointer;
-  padding: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.sample-row__play-icon {
-  display: block;
-  width: 20px;
-  height: 16px;
-  image-rendering: pixelated;
-}
-
-/* контейнер для play + waveform */
-.sample-row__media {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex: 1;
-  min-width: 0;
-}
-
-/* контейнер для play + waveform + инфо (center) */
-.sample-row__center {
-  display: flex;
-  align-items: center;
-  gap: min(50px, 4vw);
-  margin-left: auto;
-  min-width: 0;
-}
-
-/* инфо о треке (time, key, bpm, type) */
-.sample-row__metadata {
-  display: flex;
-  align-items: center;
-  gap: 48px       /* был 28px */
-}
-
-/* waveform: занимает все свободное место */
-.sample-row__waveform {
-  flex: 1;               /* занимает всё свободное место */
-  max-width: none;       /* убираем ограничение ширины */
-  min-width: 180px;
-  width: 100%;
-}
-
-.sample-row__wave-image {
-  display: block;
-  height: auto;
-  max-height: 54px;
-  object-fit: contain;   /* не режет и не растягивает картинку */
-  image-rendering: pixelated; /* сохраняем резкие края пиксель-графики */
-}
-
-/* контейнер для цены и лайка справа */
-.sample-row__actions {
-  display: flex;
-  align-items: center;
-  gap: 28px;
-  margin-right: 30px;
-}
-
-.sample-row__wave-placeholder {
-  height: 24px;
-  border-radius: 999px;
-  background: repeating-linear-gradient(
-    to right,
-    #f9fafb 0,
-    #f9fafb 2px,
-    transparent 2px,
-    transparent 4px
-  );
-}
-
-/* маленькие колонки справа */
-.sample-row__time,
-.sample-row__key,
-.sample-row__bpm,
-.sample-row__type,
-.sample-row__price {
-  white-space: nowrap;
-}
-
-.sample-row__price {
-    font-weight: bold;
-}
-
-.sample-row__time {
-  width: 40px;
-  text-align: right;
-  color: #FFFFFF;
-}
-
-.sample-row__key {
-  width: 40px;
-  text-align: center;
-}
-
-.sample-row__bpm {
-  width: 40px;
-  text-align: center;
-}
-
-.sample-row__type {
-  width: 80px;
-  text-align: right;
-}
-
-/* цена и лайк */
-.sample-row__price {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  width: 60px;
-  justify-content: flex-end;
-}
-
-.sample-row__coin {
-  font-size: 12px;
-}
-
-.sample-row__coin-icon {
-  display: block;
-  width: 14px;
-  height: 14px;
-  image-rendering: pixelated;
-}
-
-.sample-row__like {
-  border: none;
-  background: url("/img/heart_icon.png") center / contain no-repeat;
-  cursor: pointer;
-  width: 18px;
-  height: 18px;
-  padding: 4px;
-  image-rendering: pixelated;
-}
-
-.sample-row__like:hover {
-  background-image: url("/img/active_heart_icon.png");
 }
 
 /* Filters */
@@ -572,8 +342,7 @@ body {
 .user-samples-section__tabs {
   width: 100%;
   display: flex;
-  justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
 }
 
 button.user-samples-section__tab {
@@ -582,13 +351,17 @@ button.user-samples-section__tab {
   justify-content: center;
   align-items: center;
   color: #FFFFFF;
-  font-size: 14px;
-  width: clamp(240px, 90vw, 340px);
+  font-size: clamp(11px, 1.3vw, 14px);
+  flex: 1;
+  min-width: 0;
   height: 60px;
+  padding-inline: clamp(8px, 1.5vw, 16px);
   background-color: transparent;
   border: 1px solid #FFFFFF;
   cursor: pointer;
-  transition: opacity 0.1s;
+  transition: background-color 0.1s;
+  word-break: break-word;
+  text-align: center;
 }
 
 button.user-samples-section__tab:hover {
@@ -612,13 +385,70 @@ button.user-samples-section__tab.user-samples-section__tab--active:hover {
   gap: 28px;
 }
 
+.user-samples-section__loading,
+.user-samples-section__empty {
+  padding: 32px 0;
+  text-align: center;
+  color: #FFFFFF40;
+  font-size: 13px;
+}
+
 .user-page-container {
   display: flex;
-  gap: 56px;
+  gap: clamp(32px, 5vw, 56px);
   flex-direction: column;
+  width: 100%;
   max-width: 1060px;
-  min-width: 900px;
-  justify-content: center;
+  padding-inline: clamp(16px, 4vw, 52px);
+  padding-block: clamp(24px, 3vw, 48px);
+  box-sizing: border-box;
   margin: 0 auto;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Responsive: User Profile + Samples
+   ───────────────────────────────────────────────────────────── */
+
+@media (max-width: 720px) {
+  .user-profile__content {
+    flex-direction: column;
+    gap: clamp(16px, 3vw, 24px);
+    padding-top: 24px;
+    padding-bottom: 24px;
+  }
+
+  .user-profile__nickname {
+    font-size: clamp(36px, 10vw, 56px);
+  }
+
+  .user-profile__avatar {
+    width: clamp(80px, 20vw, 120px);
+    height: clamp(80px, 20vw, 120px);
+  }
+}
+
+@media (max-width: 520px) {
+  .user-profile__nickname {
+    font-size: clamp(28px, 9vw, 40px);
+  }
+
+  .user-profile__bio {
+    font-size: 13px;
+  }
+
+  .user-samples-section__tabs {
+    flex-wrap: wrap;
+  }
+
+  button.user-samples-section__tab {
+    height: auto;
+    min-height: 48px;
+    padding: 10px 8px;
+    font-size: 11px;
+  }
+
+  .user-samples-section {
+    gap: 20px;
+  }
 }
 

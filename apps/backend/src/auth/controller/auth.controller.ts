@@ -7,24 +7,25 @@ import {
   Res,
   UseGuards,
   BadRequestException,
+  UnauthorizedException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Request, Response } from 'express';
 import { AuthService } from '../service/auth.service';
 import { SupabaseAuthGuard } from '../supabase-auth.guard';
 import { RegisterDto } from '../dto/register.dto';
 import { SignInDto } from '../dto/singn-in.dto';
-
-// Cookie options for secure session storage
-const COOKIE_OPTIONS = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'lax' as const,
-  path: '/',
-};
+import {
+  getAccessTokenCookieOptions,
+  getRefreshTokenCookieOptions,
+} from '../../config/auth-cookie.config';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly configService: ConfigService,
+  ) {}
 
   // Регистрация нового пользователя
   @Post('register')
@@ -36,14 +37,16 @@ export class AuthController {
 
     // Если Supabase сразу выдал сессию (email confirmation отключен)
     if (result.session) {
-      res.cookie('access_token', result.session.access_token, {
-        ...COOKIE_OPTIONS,
-        maxAge: result.session.expires_in * 1000,
-      });
-      res.cookie('refresh_token', result.session.refresh_token, {
-        ...COOKIE_OPTIONS,
-        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-      });
+      res.cookie(
+        'access_token',
+        result.session.access_token,
+        getAccessTokenCookieOptions(this.configService, result.session.expires_in),
+      );
+      res.cookie(
+        'refresh_token',
+        result.session.refresh_token,
+        getRefreshTokenCookieOptions(this.configService),
+      );
     }
 
     return {
@@ -65,14 +68,16 @@ export class AuthController {
       dto.password,
     );
 
-    res.cookie('access_token', session.access_token, {
-      ...COOKIE_OPTIONS,
-      maxAge: session.expires_in * 1000,
-    });
-    res.cookie('refresh_token', session.refresh_token, {
-      ...COOKIE_OPTIONS,
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-    });
+    res.cookie(
+      'access_token',
+      session.access_token,
+      getAccessTokenCookieOptions(this.configService, session.expires_in),
+    );
+    res.cookie(
+      'refresh_token',
+      session.refresh_token,
+      getRefreshTokenCookieOptions(this.configService),
+    );
 
     return {
       message: 'Logged in',
@@ -89,19 +94,21 @@ export class AuthController {
   ) {
     const refreshToken = req.cookies['refresh_token'];
     if (!refreshToken) {
-      return { error: 'No refresh token' };
+      throw new UnauthorizedException('No refresh token');
     }
 
     const session = await this.authService.refresh(refreshToken);
 
-    res.cookie('access_token', session.access_token, {
-      ...COOKIE_OPTIONS,
-      maxAge: session.expires_in * 1000,
-    });
-    res.cookie('refresh_token', session.refresh_token, {
-      ...COOKIE_OPTIONS,
-      maxAge: 30 * 24 * 60 * 60 * 1000,
-    });
+    res.cookie(
+      'access_token',
+      session.access_token,
+      getAccessTokenCookieOptions(this.configService, session.expires_in),
+    );
+    res.cookie(
+      'refresh_token',
+      session.refresh_token,
+      getRefreshTokenCookieOptions(this.configService),
+    );
 
     return {
       message: 'Session refreshed',
@@ -125,8 +132,6 @@ export class AuthController {
   @UseGuards(SupabaseAuthGuard)
   @Get('me')
   async me(@Req() req: Request) {
-    console.log('req.user in controller:', (req as any).user);
-    // req.user заполняется в SupabaseAuthGuard
     return { user: (req as any).user };
   }
 

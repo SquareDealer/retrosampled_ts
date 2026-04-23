@@ -5,7 +5,14 @@ interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialMode?: "login" | "signup";
+  onAuthSuccess?: (user: AuthUser) => void;
 }
+
+type AuthUser = {
+  id?: string;
+  sub?: string;
+  email?: string;
+};
 
 type FormErrors = {
   email?: string;
@@ -17,6 +24,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   isOpen,
   onClose,
   initialMode = "login",
+  onAuthSuccess,
 }) => {
   const [mode, setMode] = useState<"login" | "signup" | "email-sent">(initialMode);
   const [email, setEmail] = useState("");
@@ -70,11 +78,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setGeneralError(null);
 
     const endpoint = mode === "login" ? "/auth/login" : "/auth/register";
-    const API_URL = "http://localhost:3000"; // Замените на ваш URL
+    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
     try {
       const response = await fetch(`${API_URL}${endpoint}`, {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },
@@ -85,22 +94,25 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       });
 
       const data = await response.json();
-      console.log("Response data:", data);
 
       if (!response.ok) {
-        // NestJS обычно возвращает ошибку в поле message
-        throw new Error(data.message || "Something went wrong");
+        const errorMessage = Array.isArray(data.message)
+          ? data.message.join(", ")
+          : data.message;
+        throw new Error(errorMessage || "Something went wrong");
       }
 
-      // Если всё ок, сохраняем токен (если он есть)
-      if (data.access_token) {
-        localStorage.setItem("token", data.access_token);
+      if (data.user && (mode === "login" || data.message === "Registered and logged in")) {
+        onAuthSuccess?.(data.user as AuthUser);
       }
 
-      console.log(`${mode} success:`, data);
-      
       // При регистрации показываем экран подтверждения email
       if (mode === "signup") {
+        if (data.message === "Registered and logged in") {
+          handleClose();
+          return;
+        }
+
         setSentEmail(email);
         setMode("email-sent");
         setEmail("");

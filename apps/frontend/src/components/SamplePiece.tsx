@@ -1,14 +1,39 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import { WaveformFromJsonForSample } from "./waveform/WaveformFromJsonForSample";
 import { useAudioContextManager } from "./AudioContextManager";
 import { Sample } from "../types/Sample";
+import "./SampleRow.css";
 
 interface SamplePieceProps {
   sample: Sample;
 }
 
+const getDeterministicLikesCount = (id: Sample["id"]): number => {
+  const source = String(id);
+  let hash = 0;
+
+  for (let i = 0; i < source.length; i += 1) {
+    hash = (hash * 31 + source.charCodeAt(i)) % 100000;
+  }
+
+  return 10 + (hash % 990);
+};
+
+const getInitialLikesCount = (sample: Sample): number => {
+  const parsedLikes = Number(sample.likesCount);
+
+  if (Number.isFinite(parsedLikes) && parsedLikes >= 0) {
+    return Math.floor(parsedLikes);
+  }
+
+  return getDeterministicLikesCount(sample.id);
+};
+
 export const SamplePiece: React.FC<SamplePieceProps> = ({ sample }) => {
   const { currentSample, state, play, seekTo } = useAudioContextManager();
+  const [isLiked, setIsLiked] = React.useState(Boolean(sample.isLiked));
+  const [likesCount, setLikesCount] = React.useState<number>(() => getInitialLikesCount(sample));
 
   const isCurrent = currentSample?.id === sample.id;
   const isPlaying = isCurrent && state.isPlaying;
@@ -36,6 +61,15 @@ export const SamplePiece: React.FC<SamplePieceProps> = ({ sample }) => {
     play(sample);
   };
 
+  const handleLikeClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+
+    setIsLiked((prevLiked) => {
+      setLikesCount((prevCount) => (prevLiked ? Math.max(0, prevCount - 1) : prevCount + 1));
+      return !prevLiked;
+    });
+  };
+
   // Click on entire container to play sample
   const handleContainerClick = () => {
     // Не запускаем, если уже играет этот семпл
@@ -58,7 +92,13 @@ export const SamplePiece: React.FC<SamplePieceProps> = ({ sample }) => {
           <a href={`/user/${sample.authorId}`} className="sample-row__author">
             {authorName}
           </a>
-          <div className="sample-row__title">{sample.title}</div>
+          <Link
+            to={`/sample/${sample.id}`}
+            className="sample-row__title sample-row__title-link"
+            onClick={(event) => event.stopPropagation()}
+          >
+            {sample.title}
+          </Link>
 
           <div className="sample-row__tags">
             {sample.tags.map((tag, index) => (
@@ -108,21 +148,24 @@ export const SamplePiece: React.FC<SamplePieceProps> = ({ sample }) => {
         </div>
       </div>
 
-      {/* RIGHT: Price + Like */}
+      {/* RIGHT: Like */}
       <div className="sample-row__right">
         <div className="sample-row__actions">
-          <div className="sample-row__price">
-            <span className="sample-row__coin">
-              <img
-                className="sample-row__coin-icon"
-                src="/img/gold_icon.png"
-                alt="gold"
-              />
-            </span>
-            <span>{sample.price}</span>
-          </div>
+          <span
+            className={`sample-row__likes-count${
+              isLiked ? " sample-row__likes-count--active" : ""
+            }`}
+            aria-label={`Likes ${likesCount}`}
+          >
+            {likesCount}
+          </span>
 
-          <button className="sample-row__like" type="button" aria-label="Like" />
+          <button
+            className={`sample-row__like${isLiked ? " sample-row__like--active" : ""}`}
+            type="button"
+            aria-label={isLiked ? "Unlike" : "Like"}
+            onClick={handleLikeClick}
+          />
         </div>
       </div>
     </div>

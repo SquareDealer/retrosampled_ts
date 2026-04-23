@@ -8,9 +8,16 @@ import { ProfileController } from './profile/controller/profile.controller';
 import { ProfileService } from './profile/service/profile.service';
 import { CreatorsService } from './creators/service/creators.service';
 import { CreatorsController } from './creators/controller/creators.controller';
+import { validateEnv } from './config/env.validation';
 
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true })],
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      cache: true,
+      validate: validateEnv,
+    }),
+  ],
   controllers: [
     AppController, 
     AuthController,

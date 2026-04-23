@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { Profile } from "../models/Profile";
-import { supabase } from "src/supabase/supabase-client";
+import { supabase } from "../../supabase/supabase-client";
 import { UpdateProfileDto } from "../dto/update-profile.dto";
 import { ProfileResponseDto } from "../dto/profile-response.dto";
 

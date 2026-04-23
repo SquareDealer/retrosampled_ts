@@ -4,8 +4,8 @@ export const mockSamples: Record<string, Sample[]> = {
   popular: [
     {
       id: "popular-1",
-      authorId: 1,
-      author: "@bagamemphis",
+      authorId: "u1",
+      author: "@southkid",
       title: "Lo-Fi Dreams",
       tags: ["lofi", "chill", "ambient"],
       audioUrl: "/audio/ALL EYES ON ME CHOP.wav",
@@ -18,8 +18,9 @@ export const mockSamples: Record<string, Sample[]> = {
     },
     {
       id: "popular-3",
-      authorId: 1,
+      authorId: "u3",
       author: "@bagamemphis",
+      collaboratorIds: ["u2", "u8"],
       title: "Lo-Fi Dreams",
       tags: ["lofi", "chill", "ambient"],
       audioUrl: "/audio/ALL EYES ON ME CHOP.wav",
@@ -32,8 +33,9 @@ export const mockSamples: Record<string, Sample[]> = {
     },
     {
       id: "popular-4",
-      authorId: 1,
+      authorId: "u3",
       author: "@bagamemphis",
+      collaboratorIds: ["u1"],
       title: "Lo-Fi Dreams",
       tags: ["lofi", "chill", "ambient"],
       audioUrl: "/audio/ALL EYES ON ME CHOP.wav",
@@ -46,8 +48,9 @@ export const mockSamples: Record<string, Sample[]> = {
     },
     {
       id: "popular-5",
-      authorId: 1,
-      author: "@bagamemphis",
+      authorId: "u4",
+      author: "@vhsghost",
+      collaboratorIds: ["u5", "u2"],
       title: "Lo-Fi Dreams",
       tags: ["lofi", "chill", "ambient"],
       audioUrl: "/audio/ALL EYES ON ME CHOP.wav",
@@ -60,8 +63,9 @@ export const mockSamples: Record<string, Sample[]> = {
     },
     {
       id: "popular-6",
-      authorId: 1,
-      author: "@bagamemphis",
+      authorId: "u1",
+      author: "@southkid",
+      collaboratorIds: ["u6"],
       title: "Lo-Fi Dreams",
       tags: ["lofi", "chill", "ambient"],
       audioUrl: "/audio/ALL EYES ON ME CHOP.wav",
@@ -74,8 +78,9 @@ export const mockSamples: Record<string, Sample[]> = {
     },
     {
       id: "popular-2",
-      authorId: 1,
-      author: "@bagamemphis",
+      authorId: "u2",
+      author: "@squaredealer",
+      collaboratorIds: ["u7"],
       title: "Retro Vibes",
       tags: ["retro", "synth", "80s"],
       audioUrl: "/audio/BULLET CHOP.wav",
@@ -90,8 +95,9 @@ export const mockSamples: Record<string, Sample[]> = {
   premium: [
     {
       id: "premium-1",
-      authorId: 1,
-      author: "@bagamemphis",
+      authorId: "u5",
+      author: "@astralchild",
+      collaboratorIds: ["u1"],
       title: "alesha_popovich_type_beat_nowrap",
       tags: ["lofi", "chill", "ambient"],
       audioUrl: "/audio/ALL EYES ON ME CHOP.wav",
@@ -104,8 +110,9 @@ export const mockSamples: Record<string, Sample[]> = {
     },
     {
       id: "premium-2",
-      authorId: 1,
-      author: "@bagamemphis",
+      authorId: "u2",
+      author: "@squaredealer",
+      collaboratorIds: ["u5"],
       title: "VIP Sample",
       tags: ["retro", "synth", "80s"],
       audioUrl: "/audio/BULLET CHOP.wav",
@@ -120,8 +127,8 @@ export const mockSamples: Record<string, Sample[]> = {
   liked: [
     {
       id: "liked-1",
-      authorId: 1,
-      author: "@bagamemphis",
+      authorId: "u6",
+      author: "@caldera",
       title: "Favorite Track",
       tags: ["lofi", "chill", "ambient"],
       audioUrl: "/audio/ALL EYES ON ME CHOP.wav",
@@ -134,8 +141,9 @@ export const mockSamples: Record<string, Sample[]> = {
     },
     {
       id: "liked-2",
-      authorId: 1,
-      author: "@bagamemphis",
+      authorId: "u7",
+      author: "@andrezj",
+      collaboratorIds: ["u2", "u3"],
       title: "Saved Beat",
       tags: ["retro", "synth", "80s"],
       audioUrl: "/audio/BULLET CHOP.wav",
