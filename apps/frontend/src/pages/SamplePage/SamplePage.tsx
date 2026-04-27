@@ -112,10 +112,6 @@ const SamplePage: React.FC = () => {
   const menuRef = useRef<HTMLDivElement | null>(null);
   const noticeTimerRef = useRef<number | null>(null);
 
-  const authorNames = useMemo(() => {
-    return sample?.authors.map((author) => author.name) ?? [];
-  }, [sample]);
-
   const creatorsWithFollowState = useMemo(() => {
     if (!sample) {
       return [];
@@ -611,7 +607,7 @@ const SamplePage: React.FC = () => {
           <SampleHeader
             title={sample.title}
             inheritedFrom={sample.inheritedFrom}
-            authors={authorNames}
+            authors={sample.authors}
           />
 
           <SampleMeta bpm={sample.bpm} musicalKey={sample.musicalKey} />

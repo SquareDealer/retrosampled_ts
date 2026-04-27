@@ -398,9 +398,10 @@ button.user-samples-section__tab.user-samples-section__tab--active:hover {
   gap: clamp(32px, 5vw, 56px);
   flex-direction: column;
   width: 100%;
-  max-width: 1060px;
+  max-width: 1180px;
   padding-inline: clamp(16px, 4vw, 52px);
-  padding-block: clamp(24px, 3vw, 48px);
+  padding-top: clamp(8px, 1.5vw, 16px);
+  padding-bottom: clamp(24px, 3vw, 48px);
   box-sizing: border-box;
   margin: 0 auto;
 }
