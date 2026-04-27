@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Agentation } from 'agentation';
+import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import UserPage from './components/UserPage';
 import { AudioManagerProvider } from './components/AudioContextManager';
 import MiniPlayer from './components/MiniPlayer';
 import { AuthModal } from './components/AuthModal';
 import SamplePage from './pages/SamplePage/SamplePage';
+import HeaderNavBar, { NavItemKey } from './components/HeaderNavBar';
 
 type SessionUser = {
   id?: string;
@@ -14,10 +16,20 @@ type SessionUser = {
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
+const NAV_ROUTES: Record<NavItemKey, string> = {
+  home: '/',
+  feed: '/feed',
+  library: '/library',
+};
+
 function App() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authModalInitialMode, setAuthModalInitialMode] = useState<'login' | 'signup'>('login');
   const [sessionUser, setSessionUser] = useState<SessionUser | null>(null);
   const [isSessionLoading, setIsSessionLoading] = useState(true);
+  const [searchValue, setSearchValue] = useState('');
   const refreshPromiseRef = useRef<Promise<boolean> | null>(null);
   const sessionLoadIdRef = useRef(0);
 
@@ -113,101 +125,94 @@ function App() {
     }
   };
 
-  const userLabel =
-    sessionUser?.email || sessionUser?.id || sessionUser?.sub || 'Authenticated user';
+  const openAuthModal = (mode: 'login' | 'signup') => {
+    setAuthModalInitialMode(mode);
+    setIsAuthModalOpen(true);
+  };
+
+  const activeNavItem: NavItemKey | null =
+    location.pathname === NAV_ROUTES.home
+      ? 'home'
+      : location.pathname.startsWith(NAV_ROUTES.feed)
+      ? 'feed'
+      : location.pathname.startsWith(NAV_ROUTES.library)
+      ? 'library'
+      : null;
+
+  const handleNavClick = (item: NavItemKey) => {
+    navigate(NAV_ROUTES[item]);
+  };
+
+  const handleSearchSubmit = (query: string) => {
+    navigate(`/feed?search=${encodeURIComponent(query)}`);
+  };
+
+  const headerUser = sessionUser
+    ? {
+        id: sessionUser.id ?? sessionUser.sub ?? sessionUser.email ?? 'session-user',
+        name: sessionUser.email ?? sessionUser.id ?? sessionUser.sub ?? 'Authenticated user',
+      }
+    : undefined;
 
   return (
-    <AudioManagerProvider>
-      <Routes>
-        <Route path="/" element={<UserPage />} />
-        <Route path="/sample/:sampleId" element={<SamplePage />} />
-        <Route path="/user/:creatorId" element={<UserPage />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-
-      <MiniPlayer />
-      
-      {isSessionLoading ? (
-        <div
-          style={{
-            position: 'fixed',
-            top: '20px',
-            right: '20px',
-            padding: '10px 14px',
-            background: '#111',
-            border: '1px solid #FFFFFF30',
-            color: '#FFFFFF80',
-            fontFamily: 'Roboto Mono, monospace',
-            fontSize: '12px',
-            zIndex: 999,
-          }}
-        >
-          Checking session...
-        </div>
-      ) : sessionUser ? (
-        <div
-          style={{
-            position: 'fixed',
-            top: '20px',
-            right: '20px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            padding: '10px 14px',
-            background: '#0b0b0b',
-            border: '1px solid #FFFFFF30',
-            color: '#fff',
-            fontFamily: 'Roboto Mono, monospace',
-            fontSize: '12px',
-            zIndex: 999,
-          }}
-        >
-          <span>{userLabel}</span>
-          <button
-            onClick={handleLogout}
-            style={{
-              border: '1px solid #FFFFFF40',
-              background: 'transparent',
-              color: '#fff',
-              padding: '4px 8px',
-              cursor: 'pointer',
-              fontFamily: 'Roboto Mono, monospace',
-              fontSize: '11px',
-            }}
-          >
-            Logout
-          </button>
-        </div>
-      ) : (
-        <button
-          onClick={() => setIsAuthModalOpen(true)}
-          style={{
-            position: 'fixed',
-            top: '20px',
-            right: '20px',
-            padding: '10px 20px',
-            background: '#fff',
-            border: 'none',
-            cursor: 'pointer',
-            fontFamily: 'Roboto Mono, monospace',
-            zIndex: 999,
-          }}
-        >
-          Open Auth Modal
-        </button>
-      )}
-
-      <AuthModal 
-        isOpen={isAuthModalOpen} 
-        onClose={() => setIsAuthModalOpen(false)}
-        onAuthSuccess={(user) => {
-          sessionLoadIdRef.current += 1;
-          setSessionUser(user);
-          setIsAuthModalOpen(false);
+    <>
+      <Agentation
+        endpoint="http://localhost:4747"
+        onSessionCreated={(sessionId) => {
+          console.log('Session started:', sessionId);
         }}
       />
-    </AudioManagerProvider>
-  )
+      <AudioManagerProvider>
+        <HeaderNavBar
+          mode={sessionUser && !isSessionLoading ? 'authenticated' : 'unauthenticated'}
+          activeNavItem={activeNavItem}
+          searchValue={searchValue}
+          onSearchValueChange={setSearchValue}
+          onSearchSubmit={handleSearchSubmit}
+          onLogoClick={() => navigate('/')}
+          onNavClick={handleNavClick}
+          onSignInClick={() => openAuthModal('login')}
+          onCreateAccountClick={() => openAuthModal('signup')}
+          onUploadClick={() => navigate('/upload')}
+          onUserAccountClick={() => {
+            if (headerUser) {
+              navigate(`/user/${headerUser.id}`);
+            }
+          }}
+          onNotificationsClick={() => navigate('/notifications')}
+          onMoreActionsClick={() => {
+            void handleLogout();
+          }}
+          user={headerUser}
+          notificationsCount={0}
+        />
+
+        <Routes>
+          <Route path="/" element={<UserPage />} />
+          <Route path="/feed" element={<UserPage />} />
+          <Route path="/library" element={<UserPage />} />
+          <Route path="/sample/:sampleId" element={<SamplePage />} />
+          <Route path="/user/:creatorId" element={<UserPage />} />
+          <Route path="/upload" element={<UserPage />} />
+          <Route path="/notifications" element={<UserPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+
+        <MiniPlayer />
+
+        <AuthModal
+          isOpen={isAuthModalOpen}
+          initialMode={authModalInitialMode}
+          onClose={() => setIsAuthModalOpen(false)}
+          onAuthSuccess={(user) => {
+            sessionLoadIdRef.current += 1;
+            setSessionUser(user);
+            setIsAuthModalOpen(false);
+          }}
+        />
+      </AudioManagerProvider>
+    </>
+  );
 }
 
 export default App
