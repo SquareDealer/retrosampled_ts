@@ -15,12 +15,33 @@ import {
 
 type SampleBucketKey = keyof typeof mockSamples;
 
+export type SamplesSort = "newest" | "popular" | "liked" | "remakes";
+export type SamplesAccessType = "free" | "premium";
+
+export type FetchSamplesQuery = {
+  search?: string;
+  tags?: string[];
+  bpm_min?: number;
+  bpm_max?: number;
+  key?: string;
+  type?: SamplesAccessType;
+  sort?: SamplesSort;
+  cursor?: string;
+  limit?: number;
+};
+
+export type FetchSamplesResponse = {
+  samples: Sample[];
+  nextCursor?: string;
+};
+
 type MockSampleEntry = {
   bucket: SampleBucketKey;
   sample: Sample;
 };
 
 const DEFAULT_LOAD_DELAY_MS = 550;
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 const ROOT_SAMPLE_ID = "popular-1";
 
 const SAMPLE_PARENT_MAP: Record<string, string | undefined> = {
@@ -315,12 +336,150 @@ const collectAllMockSamples = (): MockSampleEntry[] => {
   });
 };
 
+const appendDefinedParam = (params: URLSearchParams, key: string, value: unknown) => {
+  if (value === undefined || value === null || value === "") {
+    return;
+  }
+
+  params.set(key, String(value));
+};
+
+const buildSamplesSearchParams = (query: FetchSamplesQuery): URLSearchParams => {
+  const params = new URLSearchParams();
+
+  appendDefinedParam(params, "search", query.search?.trim());
+  appendDefinedParam(params, "bpm_min", query.bpm_min);
+  appendDefinedParam(params, "bpm_max", query.bpm_max);
+  appendDefinedParam(params, "key", query.key);
+  appendDefinedParam(params, "type", query.type);
+  appendDefinedParam(params, "sort", query.sort ?? "newest");
+  appendDefinedParam(params, "cursor", query.cursor);
+  appendDefinedParam(params, "limit", query.limit ?? 20);
+
+  if (query.tags?.length) {
+    params.set("tags", query.tags.join(","));
+  }
+
+  return params;
+};
+
+const normalizeSamplesResponse = (payload: unknown): FetchSamplesResponse => {
+  const response = payload as Partial<FetchSamplesResponse> & {
+    items?: Sample[];
+    data?: Sample[];
+  };
+
+  return {
+    samples: response.samples ?? response.items ?? response.data ?? [],
+    nextCursor: response.nextCursor,
+  };
+};
+
+const toComparableBpm = (sample: Sample): number | undefined => {
+  const bpm = Number(sample.bpm);
+  return Number.isFinite(bpm) ? bpm : undefined;
+};
+
+const getMockAccessType = (entry: MockSampleEntry): SamplesAccessType => {
+  return entry.bucket === "premium" || Number(entry.sample.price) > 0 ? "premium" : "free";
+};
+
+const fetchMockSamples = async (query: FetchSamplesQuery): Promise<FetchSamplesResponse> => {
+  await wait(DEFAULT_LOAD_DELAY_MS);
+
+  const search = query.search?.trim().toLowerCase();
+  const tags = query.tags ?? [];
+  const cursor = query.cursor ? Number(query.cursor) : 0;
+  const offset = Number.isFinite(cursor) && cursor > 0 ? cursor : 0;
+  const limit = query.limit ?? 20;
+
+  const filteredEntries = collectAllMockSamples()
+    .filter(({ bucket, sample }) => {
+      if (query.sort === "liked" && bucket !== "liked") {
+        return false;
+      }
+
+      if (search) {
+        const haystack = [sample.title, sample.author, ...sample.tags].join(" ").toLowerCase();
+        if (!haystack.includes(search)) {
+          return false;
+        }
+      }
+
+      if (tags.length && !tags.every((tag) => sample.tags.includes(tag))) {
+        return false;
+      }
+
+      const bpm = toComparableBpm(sample);
+      if (query.bpm_min !== undefined && (bpm === undefined || bpm < query.bpm_min)) {
+        return false;
+      }
+
+      if (query.bpm_max !== undefined && (bpm === undefined || bpm > query.bpm_max)) {
+        return false;
+      }
+
+      if (query.key && sample.key !== query.key) {
+        return false;
+      }
+
+      if (query.type && getMockAccessType({ bucket, sample }) !== query.type) {
+        return false;
+      }
+
+      return true;
+    })
+    .sort((entryA, entryB) => {
+      if (query.sort === "popular") {
+        return calculateLikesCount(String(entryB.sample.id)) - calculateLikesCount(String(entryA.sample.id));
+      }
+
+      if (query.sort === "remakes") {
+        return calculateRemakesCount(String(entryB.sample.id)) - calculateRemakesCount(String(entryA.sample.id));
+      }
+
+      return String(entryB.sample.id).localeCompare(String(entryA.sample.id));
+    });
+
+  const pageEntries = filteredEntries.slice(offset, offset + limit);
+  const nextOffset = offset + pageEntries.length;
+
+  return {
+    samples: pageEntries.map(({ bucket, sample }) => toFeedSample(sample, bucket)),
+    nextCursor: nextOffset < filteredEntries.length ? String(nextOffset) : undefined,
+  };
+};
+
 const getParentId = (sampleId: string): string | undefined => {
   if (sampleId === ROOT_SAMPLE_ID) {
     return undefined;
   }
 
   return SAMPLE_PARENT_MAP[sampleId] ?? ROOT_SAMPLE_ID;
+};
+
+const calculateRemakesCount = (sampleId: string): number => {
+  return collectAllMockSamples().filter(({ sample }) => getParentId(String(sample.id)) === sampleId).length;
+};
+
+const toFeedSample = (sample: Sample, bucket: SampleBucketKey): Sample => {
+  const sampleId = String(sample.id);
+  const remakes = collectAllMockSamples()
+    .filter(({ sample: childSample }) => getParentId(String(childSample.id)) === sampleId)
+    .map(({ bucket: remakeBucket, sample: remakeSample }) => ({
+      ...remakeSample,
+      likesCount: calculateLikesCount(String(remakeSample.id)),
+      isLiked: remakeBucket === "liked",
+      remakesCount: calculateRemakesCount(String(remakeSample.id)),
+    }));
+
+  return {
+    ...sample,
+    likesCount: calculateLikesCount(sampleId),
+    isLiked: bucket === "liked",
+    remakesCount: remakes.length,
+    remakes,
+  };
 };
 
 const sanitizeUsername = (value: string): string => {
@@ -547,6 +706,24 @@ const toSampleDetail = (
 
 export const listMockSampleIds = (): string[] => {
   return collectAllMockSamples().map(({ sample }) => String(sample.id));
+};
+
+export const fetchSamples = async (query: FetchSamplesQuery): Promise<FetchSamplesResponse> => {
+  const params = buildSamplesSearchParams(query);
+  try {
+    const response = await fetch(`${API_URL}/samples?${params.toString()}`, {
+      method: "GET",
+      credentials: "include",
+    });
+
+    if (!response.ok) {
+      return fetchMockSamples(query);
+    }
+
+    return normalizeSamplesResponse(await response.json());
+  } catch {
+    return fetchMockSamples(query);
+  }
 };
 
 export const fetchSampleById = async (

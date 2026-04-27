@@ -7,6 +7,9 @@ import "./SampleRow.css";
 
 interface SamplePieceProps {
   sample: Sample;
+  compact?: boolean;
+  remakesExpanded?: boolean;
+  onRemakesToggle?: () => void;
 }
 
 const getDeterministicLikesCount = (id: Sample["id"]): number => {
@@ -30,7 +33,12 @@ const getInitialLikesCount = (sample: Sample): number => {
   return getDeterministicLikesCount(sample.id);
 };
 
-export const SamplePiece: React.FC<SamplePieceProps> = ({ sample }) => {
+export const SamplePiece: React.FC<SamplePieceProps> = ({
+  sample,
+  compact = false,
+  remakesExpanded = false,
+  onRemakesToggle,
+}) => {
   const { currentSample, state, play, seekTo } = useAudioContextManager();
   const [isLiked, setIsLiked] = React.useState(Boolean(sample.isLiked));
   const [likesCount, setLikesCount] = React.useState<number>(() => getInitialLikesCount(sample));
@@ -38,6 +46,10 @@ export const SamplePiece: React.FC<SamplePieceProps> = ({ sample }) => {
   const isCurrent = currentSample?.id === sample.id;
   const isPlaying = isCurrent && state.isPlaying;
   const authorName = sample.author || "Unknown Artist";
+  const remakesCount = sample.remakesCount ?? sample.remakes?.length ?? 0;
+  const hasRemakes = remakesCount > 0 && Boolean(onRemakesToggle);
+  const waveformWidth = compact ? 160 : 200;
+  const waveformHeight = compact ? 40 : 50;
 
   // Click on waveform (seek / play-with-progress)
   const handleWaveformSeek = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -70,6 +82,11 @@ export const SamplePiece: React.FC<SamplePieceProps> = ({ sample }) => {
     });
   };
 
+  const handleRemakesToggle = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    onRemakesToggle?.();
+  };
+
   // Click on entire container to play sample
   const handleContainerClick = () => {
     // Не запускаем, если уже играет этот семпл
@@ -79,9 +96,31 @@ export const SamplePiece: React.FC<SamplePieceProps> = ({ sample }) => {
   };
 
   return (
-    <div className="sample-row" onClick={handleContainerClick} style={{ cursor: "pointer" }}>
+    <div
+      className={`sample-row${compact ? " sample-row--compact" : ""}`}
+      onClick={handleContainerClick}
+      style={{ cursor: "pointer" }}
+    >
       {/* LEFT: Avatar, Author, Title, Tags */}
       <div className="sample-row__left">
+        {!compact && (
+          <div className="sample-row__remakes-slot">
+            {hasRemakes && (
+              <button
+                className={`sample-row__remakes-toggle${
+                  remakesExpanded ? " sample-row__remakes-toggle--expanded" : ""
+                }`}
+                type="button"
+                aria-expanded={remakesExpanded}
+                aria-label={remakesExpanded ? "Hide remakes" : `Show ${remakesCount} remakes`}
+                onClick={handleRemakesToggle}
+              >
+                &gt;
+              </button>
+            )}
+          </div>
+        )}
+
         <img
           className="sample-row__avatar"
           src="/img/avatar.jpg" // Placeholder avatar
@@ -131,9 +170,9 @@ export const SamplePiece: React.FC<SamplePieceProps> = ({ sample }) => {
             <WaveformFromJsonForSample
               sample={sample}
               peaksUrl={sample.jsonPeaksUrl ?? ""}
-              width={200}
-              height={50}
-              barWidth={3}
+              width={waveformWidth}
+              height={waveformHeight}
+              barWidth={compact ? 2 : 3}
               gap={2}
               activeColor="#ffffff"
               inactiveColor="rgba(255,255,255,0.3)"

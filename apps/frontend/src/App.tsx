@@ -6,6 +6,7 @@ import { AudioManagerProvider } from './components/AudioContextManager';
 import MiniPlayer from './components/MiniPlayer';
 import { AuthModal } from './components/AuthModal';
 import SamplePage from './pages/SamplePage/SamplePage';
+import FeedPage from './pages/FeedPage/FeedPage';
 import HeaderNavBar, { NavItemKey } from './components/HeaderNavBar';
 
 type SessionUser = {
@@ -189,7 +190,15 @@ function App() {
 
         <Routes>
           <Route path="/" element={<UserPage />} />
-          <Route path="/feed" element={<UserPage />} />
+          <Route
+            path="/feed"
+            element={
+              <FeedPage
+                isAuthorized={Boolean(sessionUser && !isSessionLoading)}
+                onSignInClick={() => openAuthModal('login')}
+              />
+            }
+          />
           <Route path="/library" element={<UserPage />} />
           <Route path="/sample/:sampleId" element={<SamplePage />} />
           <Route path="/user/:creatorId" element={<UserPage />} />

@@ -13,5 +13,7 @@ export interface Sample {
   price: string | number;
   likesCount?: number;
   isLiked?: boolean;
+  remakesCount?: number;
+  remakes?: Sample[];
   jsonPeaksUrl?: string;
 }
