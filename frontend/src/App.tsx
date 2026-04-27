@@ -1,13 +1,15 @@
 import UserPage from './components/UserPage';
 import { AudioManagerProvider } from './components/AudioContextManager';
 import MiniPlayer from './components/MiniPlayer';
+import LibraryPage from './pages/LibraryPage/LibraryPage';
 
 
 function App() {
-  // Берем первый моковый семпл для примера
+  const isLibraryRoute = window.location.pathname === '/library';
+
   return (
     <AudioManagerProvider>
-      <UserPage/>
+      {isLibraryRoute ? <LibraryPage /> : <UserPage/>}
       <MiniPlayer />
     </AudioManagerProvider>
   )
