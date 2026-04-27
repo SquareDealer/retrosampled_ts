@@ -7,6 +7,7 @@ import MiniPlayer from './components/MiniPlayer';
 import { AuthModal } from './components/AuthModal';
 import SamplePage from './pages/SamplePage/SamplePage';
 import FeedPage from './pages/FeedPage/FeedPage';
+import LibraryPage from './pages/LibraryPage/LibraryPage';
 import HeaderNavBar, { NavItemKey } from './components/HeaderNavBar';
 
 type SessionUser = {
@@ -199,7 +200,7 @@ function App() {
               />
             }
           />
-          <Route path="/library" element={<UserPage />} />
+          <Route path="/library" element={<LibraryPage />} />
           <Route path="/sample/:sampleId" element={<SamplePage />} />
           <Route path="/user/:creatorId" element={<UserPage />} />
           <Route path="/upload" element={<UserPage />} />
