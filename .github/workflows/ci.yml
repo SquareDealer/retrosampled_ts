@@ -64,7 +64,7 @@ jobs:
         run: pnpm --filter @retrosampled/backend build
 
   frontend:
-    name: Frontend (unit tests)
+    name: Frontend (typecheck, unit tests, build)
     runs-on: ubuntu-latest
 
     steps:
@@ -82,5 +82,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Typecheck
+        run: pnpm --filter @retrosampled/frontend typecheck
+
       - name: Unit tests
         run: pnpm --filter @retrosampled/frontend test
+
+      - name: Build
+        run: pnpm --filter @retrosampled/frontend build
