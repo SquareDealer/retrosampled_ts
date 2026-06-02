@@ -48,6 +48,23 @@
 - `pnpm lint` — линтинг всех приложений через Turbo
 - `pnpm test` — запуск тестов всех приложений через Turbo
 
+## Тесты
+- **Backend (Jest):**
+  - `pnpm --filter @retrosampled/backend test` — юнит-тесты (без БД): валидация
+    env, TokenService, гварды, сервисы (Prisma замокан).
+  - `pnpm --filter @retrosampled/backend test:e2e` — e2e против реального
+    Postgres. Требуется тестовая БД `retrosamples_test` (создаётся автоматически
+    в CI; локально — `createdb retrosamples_test`). Перед прогоном применяются
+    миграции и сид (`test/global-setup.js`). Строку подключения можно переопределить
+    через `DATABASE_URL_TEST`.
+- **Frontend (Vitest):** `pnpm --filter @retrosampled/frontend test` — утилиты и
+  API-слой (включая fallback на моки при недоступном бэкенде).
+
+## CI
+GitHub Actions (`.github/workflows/ci.yml`) на каждый push в `main` и PR:
+- **backend** — typecheck, юнит-тесты, e2e (с сервис-контейнером Postgres), build;
+- **frontend** — юнит-тесты Vitest.
+
 ## API (backend)
 - `POST /auth/register|login|refresh|logout` — сессии (cookie access/refresh)
 - `POST /auth/forgot-password|reset-password|verify-email|change-password`
