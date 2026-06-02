@@ -1,0 +1,229 @@
+// Retrosamples database schema.
+// Migrated from Supabase (GoTrue auth + hosted Postgres) to a self-hosted
+// Postgres instance. Auth is now issued by the backend itself.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum SampleKind {
+  SAMPLE
+  REMAKE
+}
+
+enum AccessType {
+  FREE
+  PREMIUM
+}
+
+enum SampleStatus {
+  DRAFT
+  PUBLISHED
+  PRIVATE
+  PROCESSING
+  FAILED
+}
+
+enum CreatorRole {
+  OG_CREATOR
+  INHERITED_OG_CREATOR
+  CURRENT_CREATOR
+  COLLABORATOR
+}
+
+enum EmailTokenType {
+  VERIFY_EMAIL
+  RESET_PASSWORD
+}
+
+// ---------------------------------------------------------------------------
+// Auth / identity
+// ---------------------------------------------------------------------------
+
+model User {
+  id              String    @id @default(uuid()) @db.Uuid
+  email           String    @unique
+  passwordHash    String    @map("password_hash")
+  emailVerifiedAt DateTime? @map("email_verified_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  profile       Profile?
+  refreshTokens RefreshToken[]
+  emailTokens   EmailToken[]
+  samples       Sample[]        @relation("SampleOwner")
+  creatorRoles  SampleCreator[]
+  likes         Like[]
+  downloads     Download[]
+  comments      Comment[]
+  following     Follow[]        @relation("Follower")
+  followers     Follow[]        @relation("Creator")
+
+  @@map("users")
+}
+
+model Profile {
+  userId    String   @id @map("user_id") @db.Uuid
+  username  String   @unique
+  avatarUrl String?  @map("avatar_url")
+  bio       String?
+  isCreator Boolean  @default(false) @map("is_creator")
+  links     Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("profiles")
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  revokedAt DateTime? @map("revoked_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model EmailToken {
+  id        String         @id @default(uuid()) @db.Uuid
+  userId    String         @map("user_id") @db.Uuid
+  type      EmailTokenType
+  tokenHash String         @unique @map("token_hash")
+  expiresAt DateTime       @map("expires_at")
+  usedAt    DateTime?      @map("used_at")
+  createdAt DateTime       @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("email_tokens")
+}
+
+// ---------------------------------------------------------------------------
+// Content
+// ---------------------------------------------------------------------------
+
+model Sample {
+  id          String       @id @default(uuid())
+  ownerId     String       @map("owner_id") @db.Uuid
+  kind        SampleKind   @default(SAMPLE)
+  title       String
+  tags        String[]     @default([])
+  audioUrl    String       @map("audio_url")
+  coverUrl    String?      @map("cover_url")
+  waveformUrl String?      @map("waveform_url")
+  durationSec Int          @default(0) @map("duration_sec")
+  bpm         Int?
+  musicalKey  String?      @map("musical_key")
+  accessType  AccessType   @default(FREE) @map("access_type")
+  price       Int          @default(0)
+  status      SampleStatus @default(PUBLISHED)
+  plays       Int          @default(0)
+  parentId    String?      @map("parent_id")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  owner    User            @relation("SampleOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  parent   Sample?         @relation("SampleLineage", fields: [parentId], references: [id], onDelete: SetNull)
+  children Sample[]        @relation("SampleLineage")
+  creators SampleCreator[]
+  likes    Like[]
+  downloads Download[]
+  comments Comment[]
+
+  @@index([ownerId])
+  @@index([parentId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("samples")
+}
+
+model SampleCreator {
+  id       String      @id @default(uuid()) @db.Uuid
+  sampleId String      @map("sample_id")
+  userId   String      @map("user_id") @db.Uuid
+  role     CreatorRole
+
+  sample Sample @relation(fields: [sampleId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([sampleId, userId, role])
+  @@index([sampleId])
+  @@map("sample_creators")
+}
+
+model Like {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  sampleId  String   @map("sample_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sample Sample @relation(fields: [sampleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, sampleId])
+  @@index([sampleId])
+  @@map("likes")
+}
+
+model Download {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  sampleId  String   @map("sample_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sample Sample @relation(fields: [sampleId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([sampleId])
+  @@map("downloads")
+}
+
+model Follow {
+  id         String   @id @default(uuid()) @db.Uuid
+  followerId String   @map("follower_id") @db.Uuid
+  creatorId  String   @map("creator_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  follower User @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
+  creator  User @relation("Creator", fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, creatorId])
+  @@index([creatorId])
+  @@map("follows")
+}
+
+model Comment {
+  id        String   @id @default(uuid()) @db.Uuid
+  sampleId  String   @map("sample_id")
+  userId    String   @map("user_id") @db.Uuid
+  parentId  String?  @map("parent_id") @db.Uuid
+  text      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  sample  Sample    @relation(fields: [sampleId], references: [id], onDelete: Cascade)
+  user    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent  Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies Comment[] @relation("CommentReplies")
+
+  @@index([sampleId])
+  @@index([parentId])
+  @@map("comments")
+}

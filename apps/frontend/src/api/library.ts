@@ -267,7 +267,50 @@ const sortItems = (items: LibraryItem[], sort?: string) => {
 
 export const isLibraryAuthorized = () => localStorage.getItem("retrosampled:isAuthorized") !== "false";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
 export const getContinueWorkingItems = async (): Promise<ContinueWorkingItem[]> => {
+  try {
+    const response = await fetch(`${API_URL}/library/continue-working`, {
+      method: "GET",
+      credentials: "include",
+    });
+    if (response.ok) {
+      const data = (await response.json()) as { items?: ContinueWorkingItem[] };
+      return data.items ?? [];
+    }
+  } catch {
+    // fall through to mock data when the backend is unavailable
+  }
+  return getMockContinueWorkingItems();
+};
+
+export const getLibraryItems = async (query: LibraryQuery): Promise<LibraryResponse> => {
+  const params = new URLSearchParams();
+  params.set("tab", query.tab);
+  if (query.search) params.set("search", query.search);
+  if (query.sort) params.set("sort", query.sort);
+  if (query.status) params.set("status", query.status);
+  if (query.type) params.set("type", query.type);
+  if (query.cursor) params.set("cursor", query.cursor);
+  if (query.limit) params.set("limit", String(query.limit));
+
+  try {
+    const response = await fetch(`${API_URL}/library/items?${params.toString()}`, {
+      method: "GET",
+      credentials: "include",
+    });
+    if (response.ok) {
+      const data = (await response.json()) as LibraryResponse;
+      return { items: data.items ?? [], nextCursor: data.nextCursor ?? null };
+    }
+  } catch {
+    // fall through to mock data when the backend is unavailable
+  }
+  return getMockLibraryItems(query);
+};
+
+const getMockContinueWorkingItems = async (): Promise<ContinueWorkingItem[]> => {
   await new Promise((resolve) => setTimeout(resolve, 120));
   return [
     { id: "cw-remake", label: "Draft remake", title: "Retro Vibes Night Edit", href: "/remakes/remake-1/edit" },
@@ -276,7 +319,7 @@ export const getContinueWorkingItems = async (): Promise<ContinueWorkingItem[]> 
   ];
 };
 
-export const getLibraryItems = async (query: LibraryQuery): Promise<LibraryResponse> => {
+const getMockLibraryItems = async (query: LibraryQuery): Promise<LibraryResponse> => {
   await new Promise((resolve) => setTimeout(resolve, 280));
 
   if (query.search?.toLowerCase() === "error") {

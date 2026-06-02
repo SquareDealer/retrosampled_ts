@@ -730,16 +730,34 @@ export const fetchSampleById = async (
   sampleId: string,
   options?: { delayMs?: number }
 ): Promise<SampleDetail | null> => {
-  const delayMs = options?.delayMs ?? DEFAULT_LOAD_DELAY_MS;
-  await wait(delayMs);
-
   if (sampleId === "error") {
+    await wait(options?.delayMs ?? DEFAULT_LOAD_DELAY_MS);
     throw new Error("Failed to load sample. Please retry.");
   }
 
   if (!sampleId || sampleId === "empty") {
+    await wait(options?.delayMs ?? DEFAULT_LOAD_DELAY_MS);
     return null;
   }
+
+  // Prefer the real backend; fall back to mock data when it is unavailable.
+  try {
+    const response = await fetch(`${API_URL}/samples/${encodeURIComponent(sampleId)}`, {
+      method: "GET",
+      credentials: "include",
+    });
+    if (response.ok) {
+      return (await response.json()) as SampleDetail;
+    }
+    if (response.status === 404) {
+      return null;
+    }
+  } catch {
+    // network error — fall through to mock data
+  }
+
+  const delayMs = options?.delayMs ?? DEFAULT_LOAD_DELAY_MS;
+  await wait(delayMs);
 
   const allEntries = collectAllMockSamples();
   const found = allEntries.find(({ sample }) => String(sample.id) === sampleId);

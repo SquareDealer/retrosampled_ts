@@ -1,41 +1,40 @@
-import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
-import { createClient } from '@supabase/supabase-js';
+import {
+  BadRequestException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
 export class CreatorsService {
-  private supabaseForUser(jwt: string) {
-    return createClient(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_KEY!,
-      {
-        global: {
-          headers: {
-            Authorization: `Bearer ${jwt}`,
-          },
-        },
-      },
-    );
-  }
+  constructor(private readonly prisma: PrismaService) {}
 
-  async becomeCreator(userJwt: string) {
-    if (!userJwt) {
+  /**
+   * Promotes a user to "creator". Replaces the Supabase `become_creator` RPC.
+   * Requires a complete profile (username + bio).
+   */
+  async becomeCreator(userId: string): Promise<{ isCreator: boolean }> {
+    if (!userId) {
       throw new UnauthorizedException();
     }
 
-    const supabase = this.supabaseForUser(userJwt);
+    const profile = await this.prisma.profile.findUnique({
+      where: { userId },
+    });
 
-    const { data, error } = await supabase.rpc('become_creator');
-
-    if (error) {
-      if (error.message?.includes('profile_incomplete')) {
-        throw new BadRequestException('Заполни профиль полностью');
-      }
-      if (error.message?.includes('profile_not_found')) {
-        throw new BadRequestException('Сначала создай профиль');
-      }
-      throw new BadRequestException(error.message);
+    if (!profile) {
+      throw new BadRequestException('Сначала создай профиль');
     }
 
-    return data;
+    if (!profile.username || !profile.bio) {
+      throw new BadRequestException('Заполни профиль полностью');
+    }
+
+    const updated = await this.prisma.profile.update({
+      where: { userId },
+      data: { isCreator: true },
+    });
+
+    return { isCreator: updated.isCreator };
   }
 }

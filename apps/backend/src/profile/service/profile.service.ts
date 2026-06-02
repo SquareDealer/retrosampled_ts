@@ -1,82 +1,75 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import { Profile } from "../models/Profile";
-import { supabase } from "../../supabase/supabase-client";
-import { UpdateProfileDto } from "../dto/update-profile.dto";
-import { ProfileResponseDto } from "../dto/profile-response.dto";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { Profile } from '@prisma/client';
+import { PrismaService } from '../../prisma/prisma.service';
+import { UpdateProfileDto } from '../dto/update-profile.dto';
+import { ProfileResponseDto } from '../dto/profile-response.dto';
 
 @Injectable()
 export class ProfileService {
+  constructor(private readonly prisma: PrismaService) {}
 
-    private mapToResponse(profile: Profile): ProfileResponseDto {
-        return {
-            userId: profile.user_id,
-            username: profile.username ?? null,
-            avatarUrl: profile.avatar_url ?? null,
-            bio: profile.bio ?? null,
-            links: profile.links ?? {},
-        };
+  private mapToResponse(profile: Profile): ProfileResponseDto {
+    return {
+      userId: profile.userId,
+      username: profile.username ?? null,
+      avatarUrl: profile.avatarUrl ?? null,
+      bio: profile.bio ?? null,
+      isCreator: profile.isCreator,
+      links: (profile.links as Record<string, string>) ?? {},
+    };
+  }
+
+  async getProfileById(userId: string): Promise<ProfileResponseDto> {
+    const profile = await this.prisma.profile.findUnique({ where: { userId } });
+    if (!profile) {
+      throw new NotFoundException('Profile not found');
+    }
+    return this.mapToResponse(profile);
+  }
+
+  async getProfileByUsername(username: string): Promise<ProfileResponseDto> {
+    const profile = await this.prisma.profile.findUnique({
+      where: { username },
+    });
+    if (!profile) {
+      throw new NotFoundException('Profile not found');
+    }
+    return this.mapToResponse(profile);
+  }
+
+  async updateProfile(
+    userId: string,
+    dto: UpdateProfileDto,
+  ): Promise<ProfileResponseDto> {
+    if (dto.username) {
+      const clash = await this.prisma.profile.findFirst({
+        where: { username: dto.username, NOT: { userId } },
+        select: { userId: true },
+      });
+      if (clash) {
+        throw new BadRequestException('Username already taken');
+      }
     }
 
-    // Получение профиля по user_id
-    async getProfileById(userId: string): Promise<ProfileResponseDto> {
-        const { data, error } = await supabase
-            .from('profile')
-            .select('*')
-            .eq('user_id', userId)
-            .single();
-
-        if (error || !data) {
-            throw new NotFoundException('Profile not found');
-        }
-
-        return this.mapToResponse(data as Profile);
+    try {
+      const updated = await this.prisma.profile.update({
+        where: { userId },
+        data: {
+          ...(dto.username !== undefined ? { username: dto.username } : {}),
+          ...(dto.bio !== undefined ? { bio: dto.bio } : {}),
+          ...(dto.avatar_url !== undefined
+            ? { avatarUrl: dto.avatar_url }
+            : {}),
+          ...(dto.links !== undefined ? { links: dto.links } : {}),
+        },
+      });
+      return this.mapToResponse(updated);
+    } catch {
+      throw new BadRequestException('Failed to update profile');
     }
-
-    // Получение профиля по username
-    async getProfileByUsername(username: string): Promise<ProfileResponseDto> {
-        const { data, error } = await supabase
-            .from('profile')
-            .select('*')
-            .eq('username', username)
-            .single();
-        if (error || !data) {
-            throw new NotFoundException('Profile not found');
-        }
-
-        return this.mapToResponse(data as Profile);
-    }
-
-    // Обновление профиля пользователя
-    async updateProfile(userId: string, dto: UpdateProfileDto): Promise<ProfileResponseDto> {
-
-        if(dto.username) {
-            const { data: existingUser } = await supabase
-                .from('profile')
-                .select('user_id')
-                .eq('username', dto.username)
-                .neq('user_id', userId)
-                .single();
-
-            if (existingUser) {
-                throw new BadRequestException('Username already taken');
-            }
-        }
-
-        const { data, error } = await supabase
-            .from('profile')
-            .update({
-                ...dto,
-                updated_at: new Date().toISOString(),
-            })
-            .eq('user_id', userId)
-            .select()
-            .single();
-
-        if (error || !data) {
-            throw new BadRequestException(error?.message || 'Failed to update profile');
-        }
-
-        return this.mapToResponse(data as Profile);
-    }
+  }
 }
-
