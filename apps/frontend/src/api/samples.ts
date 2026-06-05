@@ -769,25 +769,46 @@ export const fetchSampleById = async (
   return toSampleDetail(found.sample, found.bucket, allEntries);
 };
 
-export const mockToggleLikeRequest = async (
+export const toggleSampleLike = async (
   sampleId: string,
-  _nextLiked: boolean
+  nextLiked: boolean
 ): Promise<void> => {
-  await wait(280);
-
-  if (sampleId.includes("fail-like")) {
-    throw new Error("Like request failed.");
+  try {
+    const response = await fetch(`${API_URL}/samples/${sampleId}/like`, {
+      method: nextLiked ? "PUT" : "DELETE",
+      credentials: "include",
+    });
+    if (!response.ok) {
+      throw new Error("Like request failed.");
+    }
+  } catch (error) {
+    // A real HTTP rejection should surface (and roll back the optimistic UI);
+    // a network failure (backend unreachable) degrades gracefully.
+    if (error instanceof Error && error.message === "Like request failed.") {
+      throw error;
+    }
   }
 };
 
-export const mockToggleCreatorFollowRequest = async (
+export const toggleCreatorFollow = async (
   creatorId: string,
-  _nextFollowing: boolean
+  nextFollowing: boolean
 ): Promise<void> => {
-  await wait(260);
-
-  if (creatorId.includes("fail-follow")) {
-    throw new Error("Creator follow request failed.");
+  try {
+    const response = await fetch(`${API_URL}/creators/${creatorId}/follow`, {
+      method: nextFollowing ? "PUT" : "DELETE",
+      credentials: "include",
+    });
+    if (!response.ok) {
+      throw new Error("Creator follow request failed.");
+    }
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      error.message === "Creator follow request failed."
+    ) {
+      throw error;
+    }
   }
 };
 
@@ -800,43 +821,71 @@ export const fetchSampleComments = async (
   sampleId: string,
   options?: { delayMs?: number }
 ): Promise<SampleCommentsResponse> => {
+  if (!sampleId) {
+    return { totalCount: 0, comments: [] };
+  }
+
+  try {
+    const response = await fetch(
+      `${API_URL}/samples/${encodeURIComponent(sampleId)}/comments`,
+      { method: "GET", credentials: "include" }
+    );
+    if (response.ok) {
+      const data = (await response.json()) as SampleCommentsResponse;
+      return {
+        totalCount: data.totalCount ?? data.comments?.length ?? 0,
+        comments: data.comments ?? [],
+      };
+    }
+  } catch {
+    // fall through to mock data when the backend is unavailable
+  }
+
   const delayMs = options?.delayMs ?? DEFAULT_COMMENTS_DELAY_MS;
   await wait(delayMs);
-
-  if (!sampleId) {
-    return {
-      totalCount: 0,
-      comments: [],
-    };
-  }
 
   if (sampleId.includes("error-comments")) {
     throw new Error("Failed to load comments. Please retry.");
   }
 
   const comments = cloneComments(ensureCommentsInStore(sampleId));
-
   return {
     totalCount: countCommentsTree(comments),
     comments,
   };
 };
 
-export const mockCreateCommentRequest = async (
+export const createComment = async (
   sampleId: string,
   text: string,
   parentId?: string
 ): Promise<SampleComment> => {
-  await wait(260);
-
   const normalizedText = text.trim();
-
   if (!normalizedText) {
     throw new Error("Comment text is required.");
   }
 
-  if (normalizedText.toLowerCase().includes("fail-comment")) {
-    throw new Error("Comment request failed.");
+  try {
+    const response = await fetch(
+      `${API_URL}/samples/${encodeURIComponent(sampleId)}/comments`,
+      {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: normalizedText, parentId }),
+      }
+    );
+    if (response.ok) {
+      return (await response.json()) as SampleComment;
+    }
+    if (!response.ok) {
+      throw new Error("Comment request failed.");
+    }
+  } catch (error) {
+    if (error instanceof Error && error.message === "Comment request failed.") {
+      throw error;
+    }
+    // Network failure — fall back to the in-memory mock store.
   }
 
   const comments = ensureCommentsInStore(sampleId);
@@ -852,11 +901,9 @@ export const mockCreateCommentRequest = async (
 
   if (parentId) {
     const parent = comments.find((comment) => comment.id === parentId);
-
     if (!parent) {
       throw new Error("Parent comment not found.");
     }
-
     parent.replies = [...(parent.replies ?? []), createdComment];
     return cloneComment(createdComment);
   }

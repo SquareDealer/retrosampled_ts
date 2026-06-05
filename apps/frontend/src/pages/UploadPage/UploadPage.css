@@ -1,0 +1,148 @@
+.upload-page {
+  display: flex;
+  justify-content: center;
+  padding: 32px 16px 80px;
+}
+
+.upload-card {
+  width: 100%;
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: #161616;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 28px;
+}
+
+.upload-card h1 {
+  margin: 0;
+  font-size: 22px;
+  color: #fff;
+}
+
+.upload-card--gate {
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+}
+
+.upload-card--gate p {
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0;
+}
+
+.upload-dropzone {
+  border: 1px dashed rgba(255, 255, 255, 0.25);
+  border-radius: 12px;
+  min-height: 96px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+  text-align: center;
+  padding: 16px;
+}
+
+.upload-dropzone:hover {
+  border-color: rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.upload-dropzone__hint {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 14px;
+}
+
+.upload-file {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.upload-file__name {
+  color: #fff;
+  font-weight: 600;
+  word-break: break-all;
+}
+
+.upload-file__hint {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+}
+
+.upload-waveform {
+  display: flex;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 10px;
+  padding: 10px;
+  overflow: hidden;
+}
+
+.upload-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.upload-field > span {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.upload-field input,
+.upload-field select {
+  background: #0e0e0e;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #fff;
+  font-size: 14px;
+  outline: none;
+}
+
+.upload-field input:focus,
+.upload-field select:focus {
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.upload-field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+}
+
+.upload-error {
+  margin: 0;
+  color: #ff6b6b;
+  font-size: 14px;
+}
+
+.upload-btn {
+  background: #fff;
+  color: #000;
+  border: none;
+  border-radius: 999px;
+  padding: 12px 20px;
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.upload-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.upload-note {
+  margin: 0;
+  text-align: center;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.4);
+}

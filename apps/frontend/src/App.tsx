@@ -8,6 +8,7 @@ import { AuthModal } from './components/AuthModal';
 import SamplePage from './pages/SamplePage/SamplePage';
 import FeedPage from './pages/FeedPage/FeedPage';
 import LibraryPage from './pages/LibraryPage/LibraryPage';
+import UploadPage from './pages/UploadPage/UploadPage';
 import HeaderNavBar, { NavItemKey } from './components/HeaderNavBar';
 
 type SessionUser = {
@@ -203,7 +204,15 @@ function App() {
           <Route path="/library" element={<LibraryPage />} />
           <Route path="/sample/:sampleId" element={<SamplePage />} />
           <Route path="/user/:creatorId" element={<UserPage />} />
-          <Route path="/upload" element={<UserPage />} />
+          <Route
+            path="/upload"
+            element={
+              <UploadPage
+                isAuthorized={Boolean(sessionUser && !isSessionLoading)}
+                onSignInClick={() => openAuthModal('login')}
+              />
+            }
+          />
           <Route path="/notifications" element={<UserPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
