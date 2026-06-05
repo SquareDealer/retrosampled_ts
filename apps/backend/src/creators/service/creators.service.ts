@@ -37,4 +37,34 @@ export class CreatorsService {
 
     return { isCreator: updated.isCreator };
   }
+
+  async follow(
+    followerId: string,
+    creatorId: string,
+  ): Promise<{ following: boolean }> {
+    if (followerId === creatorId) {
+      throw new BadRequestException('Cannot follow yourself');
+    }
+    const creator = await this.prisma.user.findUnique({
+      where: { id: creatorId },
+      select: { id: true },
+    });
+    if (!creator) {
+      throw new BadRequestException('Creator not found');
+    }
+    await this.prisma.follow.upsert({
+      where: { followerId_creatorId: { followerId, creatorId } },
+      create: { followerId, creatorId },
+      update: {},
+    });
+    return { following: true };
+  }
+
+  async unfollow(
+    followerId: string,
+    creatorId: string,
+  ): Promise<{ following: boolean }> {
+    await this.prisma.follow.deleteMany({ where: { followerId, creatorId } });
+    return { following: false };
+  }
 }

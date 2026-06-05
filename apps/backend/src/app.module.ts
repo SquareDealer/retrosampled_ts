@@ -8,6 +8,7 @@ import { ProfileModule } from './profile/profile.module';
 import { CreatorsModule } from './creators/creators.module';
 import { SamplesModule } from './samples/samples.module';
 import { LibraryModule } from './library/library.module';
+import { CommentsModule } from './comments/comments.module';
 import { validateEnv } from './config/env.validation';
 
 @Module({
@@ -23,6 +24,7 @@ import { validateEnv } from './config/env.validation';
     CreatorsModule,
     SamplesModule,
     LibraryModule,
+    CommentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
