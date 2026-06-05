@@ -52,3 +52,6 @@ out/
 **/.vitepress/cache
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Locally stored uploads (local storage driver)
+uploads/

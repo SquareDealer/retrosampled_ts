@@ -4,9 +4,13 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import { Prisma, Sample, SampleStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { StorageService } from '../storage/storage.service';
 import { QuerySamplesDto } from './dto/query-samples.dto';
+import { CreateSampleDto } from './dto/create-sample.dto';
+import { UpdateSampleDto } from './dto/update-sample.dto';
 import {
   CreatorRole,
   CreatorViewModel,
@@ -30,9 +34,122 @@ const sampleWithRelations = Prisma.validator<Prisma.SampleDefaultArgs>()({
 
 type SampleWithRelations = Prisma.SampleGetPayload<typeof sampleWithRelations>;
 
+const AUDIO_EXT_BY_MIME: Record<string, string> = {
+  'audio/mpeg': 'mp3',
+  'audio/mp3': 'mp3',
+  'audio/wav': 'wav',
+  'audio/x-wav': 'wav',
+  'audio/wave': 'wav',
+  'audio/ogg': 'ogg',
+  'audio/flac': 'flac',
+  'audio/x-flac': 'flac',
+  'audio/aac': 'aac',
+  'audio/mp4': 'm4a',
+  'audio/x-m4a': 'm4a',
+};
+
+const MAX_AUDIO_BYTES = 30 * 1024 * 1024; // 30 MB
+
 @Injectable()
 export class SamplesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storage: StorageService,
+  ) {}
+
+  // --- Upload / edit -------------------------------------------------------
+
+  async createUpload(
+    userId: string,
+    file: Express.Multer.File | undefined,
+    dto: CreateSampleDto,
+  ): Promise<{ id: string; title: string; status: SampleStatus }> {
+    if (!file) {
+      throw new BadRequestException('Audio file is required');
+    }
+    const ext = AUDIO_EXT_BY_MIME[file.mimetype];
+    if (!ext) {
+      throw new BadRequestException(`Unsupported audio type: ${file.mimetype}`);
+    }
+    if (file.size > MAX_AUDIO_BYTES) {
+      throw new BadRequestException('Audio file exceeds the 30 MB limit');
+    }
+
+    // Validate the client-provided peaks payload.
+    let peaksJson: string;
+    try {
+      const parsed = JSON.parse(dto.peaks);
+      if (!parsed || !Array.isArray(parsed.data)) {
+        throw new Error('missing data array');
+      }
+      peaksJson = JSON.stringify(parsed);
+    } catch {
+      throw new BadRequestException('Invalid waveform peaks payload');
+    }
+
+    let parent: Sample | null = null;
+    if (dto.parentId) {
+      parent = await this.prisma.sample.findUnique({
+        where: { id: dto.parentId },
+      });
+      if (!parent) {
+        throw new BadRequestException('Original sample not found');
+      }
+    }
+
+    const id = randomUUID();
+    const audioUrl = await this.storage.put(
+      `samples/${id}/audio.${ext}`,
+      file.buffer,
+      file.mimetype,
+    );
+    const waveformUrl = await this.storage.put(
+      `samples/${id}/peaks.json`,
+      Buffer.from(peaksJson, 'utf-8'),
+      'application/json',
+    );
+
+    const sample = await this.prisma.sample.create({
+      data: {
+        id,
+        ownerId: userId,
+        kind: parent ? 'REMAKE' : 'SAMPLE',
+        status: SampleStatus.DRAFT,
+        title: dto.title.trim(),
+        tags: dto.tags ?? [],
+        audioUrl,
+        waveformUrl,
+        durationSec: dto.durationSec,
+        bpm: dto.bpm ?? null,
+        musicalKey: dto.key ?? null,
+        accessType: dto.accessType === 'premium' ? 'PREMIUM' : 'FREE',
+        parentId: parent?.id ?? null,
+      },
+    });
+
+    return { id: sample.id, title: sample.title, status: sample.status };
+  }
+
+  async updateMetadata(
+    sampleId: string,
+    userId: string,
+    dto: UpdateSampleDto,
+  ): Promise<{ id: string }> {
+    await this.ensureOwnership(sampleId, userId);
+    await this.prisma.sample.update({
+      where: { id: sampleId },
+      data: {
+        ...(dto.title !== undefined ? { title: dto.title.trim() } : {}),
+        ...(dto.tags !== undefined ? { tags: dto.tags } : {}),
+        ...(dto.bpm !== undefined ? { bpm: dto.bpm } : {}),
+        ...(dto.key !== undefined ? { musicalKey: dto.key } : {}),
+        ...(dto.accessType !== undefined
+          ? { accessType: dto.accessType === 'premium' ? 'PREMIUM' : 'FREE' }
+          : {}),
+      },
+    });
+    return { id: sampleId };
+  }
 
   // --- Feed ----------------------------------------------------------------
 
