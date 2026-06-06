@@ -10,6 +10,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Throttle } from '@nestjs/throttler';
 import { Request, Response } from 'express';
 import { AuthService } from '../service/auth.service';
 import { JwtAuthGuard, AuthenticatedRequest } from '../jwt-auth.guard';
@@ -20,6 +21,13 @@ import {
   getRefreshTokenCookieOptions,
 } from '../../config/auth-cookie.config';
 
+// Tighter rate limit on auth endpoints to slow credential-stuffing.
+@Throttle({
+  default: {
+    ttl: Number(process.env.THROTTLE_TTL ?? 60000),
+    limit: Number(process.env.AUTH_THROTTLE_LIMIT ?? 50),
+  },
+})
 @Controller('auth')
 export class AuthController {
   constructor(

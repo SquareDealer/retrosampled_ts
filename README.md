@@ -65,6 +65,12 @@ GitHub Actions (`.github/workflows/ci.yml`) на каждый push в `main` и 
 - **backend** — typecheck, юнит-тесты, e2e (с сервис-контейнером Postgres), build;
 - **frontend** — typecheck, юнит-тесты Vitest, build.
 
+## Деплой
+См. **[DEPLOY.md](./DEPLOY.md)** — рекомендованный стек (Render + Cloudflare R2 +
+Resend), `render.yaml` Blueprint, Dockerfile и нужные переменные окружения
+(CORS/cookie для кросс-домена, хранилище, почта, rate-limit). Полный список
+переменных — в `apps/backend/.env.example`.
+
 ## API (backend)
 - `POST /auth/register|login|refresh|logout` — сессии (cookie access/refresh)
 - `POST /auth/forgot-password|reset-password|verify-email|change-password`
@@ -75,6 +81,10 @@ GitHub Actions (`.github/workflows/ci.yml`) на каждый push в `main` и 
 - `GET /samples/:id` — детальная страница с деревом сэмплирования
 - `PUT|DELETE /samples/:id/like`, `POST /samples/:id/downloads|remakes|retry-processing`
 - `PATCH /samples/:id/visibility`, `DELETE /samples/:id`
+- `POST /samples` — загрузка сэмпла/римейка (multipart: аудио + waveform-пики)
+- `PATCH /samples/:id` — редактирование метаданных (владелец)
+- `GET /samples/:id/comments`, `POST /samples/:id/comments`, `DELETE /comments/:id`
+- `PUT /creators/:id/follow`, `DELETE /creators/:id/follow`
 - `GET /library/items` — личная библиотека (tabs: liked/downloaded/uploads/remakes)
 - `GET /library/continue-working`
 - `GET /health` — статус сервиса и БД

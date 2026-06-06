@@ -11,3 +11,6 @@ process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-secret-at-least-16-char
 process.env.JWT_ACCESS_TTL = process.env.JWT_ACCESS_TTL || '3600';
 process.env.JWT_REFRESH_TTL = process.env.JWT_REFRESH_TTL || '2592000';
 process.env.APP_URL = process.env.APP_URL || 'http://localhost:5173';
+// Disable rate limiting during tests to avoid cross-suite flakiness.
+process.env.THROTTLE_LIMIT = process.env.THROTTLE_LIMIT || '1000000';
+process.env.AUTH_THROTTLE_LIMIT = process.env.AUTH_THROTTLE_LIMIT || '1000000';
