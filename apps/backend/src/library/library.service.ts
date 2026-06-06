@@ -119,19 +119,57 @@ export class LibraryService {
     offset: number,
     take: number,
   ): Promise<SampleRow[]> {
+    // A sample can be downloaded more than once. Prisma's `distinct` combined
+    // with skip/take de-duplicates *after* the SQL LIMIT/OFFSET, which skips or
+    // dupes rows across pages. Instead, collapse to distinct sampleIds first
+    // (via groupBy on the latest download), then filter, sort and paginate.
+    const grouped = await this.prisma.download.groupBy({
+      by: ['sampleId'],
+      where: { userId },
+      _max: { createdAt: true },
+      orderBy: { _max: { createdAt: 'desc' } },
+    });
+    if (grouped.length === 0) {
+      return [];
+    }
+
+    const recencyIndex = new Map<string, number>();
+    grouped.forEach((g, i) => recencyIndex.set(g.sampleId, i));
+
     const filter = this.searchFilter(query);
     if (query.type) {
       filter.accessType = query.type === 'premium' ? 'PREMIUM' : 'FREE';
     }
-    const links = await this.prisma.download.findMany({
-      where: { userId, sample: filter },
-      orderBy: this.joinOrder(query.sort, 'recently-downloaded'),
-      skip: offset,
-      take,
-      distinct: ['sampleId'],
-      include: { sample: sampleInclude },
+
+    const samples = await this.prisma.sample.findMany({
+      where: { ...filter, id: { in: grouped.map((g) => g.sampleId) } },
+      ...sampleInclude,
     });
-    return links.map((l) => l.sample);
+
+    const sorted = this.sortDownloaded(samples, query.sort, recencyIndex);
+    return sorted.slice(offset, offset + take);
+  }
+
+  private sortDownloaded(
+    rows: SampleRow[],
+    sort: string | undefined,
+    recencyIndex: Map<string, number>,
+  ): SampleRow[] {
+    const copy = [...rows];
+    switch (sort) {
+      case 'newest':
+        return copy.sort(
+          (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+        );
+      case 'most-popular':
+        return copy.sort((a, b) => b._count.likes - a._count.likes);
+      case 'recently-downloaded':
+      default:
+        return copy.sort(
+          (a, b) =>
+            (recencyIndex.get(a.id) ?? 0) - (recencyIndex.get(b.id) ?? 0),
+        );
+    }
   }
 
   private async ownedRows(

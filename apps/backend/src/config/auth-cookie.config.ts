@@ -16,9 +16,15 @@ function baseCookieOptions(configService: ConfigService): CookieOptions {
       | 'none'
       | undefined) ?? 'lax';
 
+  // Browsers reject SameSite=None cookies without Secure, so force it on in
+  // that case regardless of COOKIE_SECURE to avoid silently-dropped cookies.
   const secureEnv = configService.get<string>('COOKIE_SECURE');
   const secure =
-    secureEnv !== undefined ? secureEnv === 'true' : isProd || sameSite === 'none';
+    sameSite === 'none'
+      ? true
+      : secureEnv !== undefined
+        ? secureEnv === 'true'
+        : isProd;
 
   const domain = configService.get<string>('COOKIE_DOMAIN') || undefined;
 
@@ -48,4 +54,12 @@ export function getRefreshTokenCookieOptions(
     ...baseCookieOptions(configService),
     maxAge: REFRESH_TOKEN_MAX_AGE_MS,
   };
+}
+
+// clearCookie only deletes a cookie when domain/sameSite/secure/path match the
+// attributes it was set with — so reuse the same base options when clearing.
+export function getClearCookieOptions(
+  configService: ConfigService,
+): CookieOptions {
+  return baseCookieOptions(configService);
 }

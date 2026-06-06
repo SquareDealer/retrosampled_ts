@@ -2,7 +2,11 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { promises as fs } from 'fs';
 import { join, dirname } from 'path';
-import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import {
+  DeleteObjectCommand,
+  PutObjectCommand,
+  S3Client,
+} from '@aws-sdk/client-s3';
 
 /**
  * Object storage abstraction.
@@ -74,5 +78,20 @@ export class StorageService {
     await fs.mkdir(dirname(filePath), { recursive: true });
     await fs.writeFile(filePath, body);
     return `${this.publicBaseUrl}/uploads/${key}`;
+  }
+
+  /** Best-effort delete. Never throws — used to clean up after failed writes. */
+  async remove(key: string): Promise<void> {
+    try {
+      if (this.driver === 's3') {
+        await this.s3!.send(
+          new DeleteObjectCommand({ Bucket: this.bucket, Key: key }),
+        );
+      } else {
+        await fs.rm(join(this.localDir, key), { force: true });
+      }
+    } catch (error) {
+      this.logger.warn(`Failed to delete object ${key}: ${error}`);
+    }
   }
 }

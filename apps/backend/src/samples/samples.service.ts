@@ -48,7 +48,7 @@ const AUDIO_EXT_BY_MIME: Record<string, string> = {
   'audio/x-m4a': 'm4a',
 };
 
-const MAX_AUDIO_BYTES = 30 * 1024 * 1024; // 30 MB
+export const MAX_AUDIO_BYTES = 30 * 1024 * 1024; // 30 MB
 
 @Injectable()
 export class SamplesService {
@@ -98,36 +98,43 @@ export class SamplesService {
     }
 
     const id = randomUUID();
-    const audioUrl = await this.storage.put(
-      `samples/${id}/audio.${ext}`,
-      file.buffer,
-      file.mimetype,
-    );
+    const audioKey = `samples/${id}/audio.${ext}`;
+    const peaksKey = `samples/${id}/peaks.json`;
+
+    const audioUrl = await this.storage.put(audioKey, file.buffer, file.mimetype);
     const waveformUrl = await this.storage.put(
-      `samples/${id}/peaks.json`,
+      peaksKey,
       Buffer.from(peaksJson, 'utf-8'),
       'application/json',
     );
 
-    const sample = await this.prisma.sample.create({
-      data: {
-        id,
-        ownerId: userId,
-        kind: parent ? 'REMAKE' : 'SAMPLE',
-        status: SampleStatus.DRAFT,
-        title: dto.title.trim(),
-        tags: dto.tags ?? [],
-        audioUrl,
-        waveformUrl,
-        durationSec: dto.durationSec,
-        bpm: dto.bpm ?? null,
-        musicalKey: dto.key ?? null,
-        accessType: dto.accessType === 'premium' ? 'PREMIUM' : 'FREE',
-        parentId: parent?.id ?? null,
-      },
-    });
-
-    return { id: sample.id, title: sample.title, status: sample.status };
+    try {
+      const sample = await this.prisma.sample.create({
+        data: {
+          id,
+          ownerId: userId,
+          kind: parent ? 'REMAKE' : 'SAMPLE',
+          status: SampleStatus.DRAFT,
+          title: dto.title.trim(),
+          tags: dto.tags ?? [],
+          audioUrl,
+          waveformUrl,
+          durationSec: dto.durationSec,
+          bpm: dto.bpm ?? null,
+          musicalKey: dto.key ?? null,
+          accessType: dto.accessType === 'premium' ? 'PREMIUM' : 'FREE',
+          parentId: parent?.id ?? null,
+        },
+      });
+      return { id: sample.id, title: sample.title, status: sample.status };
+    } catch (error) {
+      // Don't leak the just-uploaded objects if the row never persisted.
+      await Promise.all([
+        this.storage.remove(audioKey),
+        this.storage.remove(peaksKey),
+      ]);
+      throw error;
+    }
   }
 
   async updateMetadata(
@@ -273,7 +280,8 @@ export class SamplesService {
       where: { id },
       ...sampleWithRelations,
     });
-    if (!sample) {
+    if (!sample || !this.isViewable(sample, viewerId)) {
+      // 404 (not 403) so we don't reveal that a private/draft id exists.
       throw new NotFoundException('Sample not found');
     }
 
@@ -473,6 +481,10 @@ export class SamplesService {
     userId: string,
   ): Promise<{ downloadUrl: string }> {
     const sample = await this.ensureSampleExists(sampleId);
+    if (!this.isViewable(sample, userId)) {
+      // Private/draft samples are only downloadable by their owner.
+      throw new NotFoundException('Sample not found');
+    }
     await this.prisma.download.create({ data: { userId, sampleId } });
     return { downloadUrl: sample.audioUrl };
   }
@@ -539,6 +551,20 @@ export class SamplesService {
   }
 
   // --- helpers -------------------------------------------------------------
+
+  /**
+   * A sample is viewable if it is PUBLISHED, or the viewer is its owner.
+   * Draft/private/processing/failed samples are owner-only.
+   */
+  private isViewable(
+    sample: { status: SampleStatus; ownerId: string },
+    viewerId?: string,
+  ): boolean {
+    return (
+      sample.status === SampleStatus.PUBLISHED ||
+      (!!viewerId && sample.ownerId === viewerId)
+    );
+  }
 
   private async ensureSampleExists(id: string): Promise<Sample> {
     const sample = await this.prisma.sample.findUnique({ where: { id } });
