@@ -9,7 +9,9 @@ const prisma = {
   user: { findUnique: jest.fn(), findFirst: jest.fn(), create: jest.fn(), update: jest.fn(), delete: jest.fn() },
   profile: { findUnique: jest.fn() },
   refreshToken: { create: jest.fn(), findUnique: jest.fn(), update: jest.fn(), updateMany: jest.fn() },
-  emailToken: { create: jest.fn(), findUnique: jest.fn(), update: jest.fn() },
+  emailToken: { create: jest.fn(), findUnique: jest.fn(), update: jest.fn(), updateMany: jest.fn() },
+  // Run the callback against the same mock client.
+  $transaction: jest.fn((cb: (tx: unknown) => unknown) => cb(prisma)),
 } as unknown as PrismaService;
 
 const tokens = {
@@ -120,9 +122,11 @@ describe('AuthService', () => {
         expiresAt: new Date(Date.now() + 100000),
         user: { id: 'u1', email: 'a@b.dev' },
       });
+      (prisma.refreshToken.updateMany as jest.Mock).mockResolvedValue({ count: 1 });
+
       const session = await service.refresh('raw-refresh');
-      expect(prisma.refreshToken.update).toHaveBeenCalledWith({
-        where: { id: 'rt1' },
+      expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith({
+        where: { id: 'rt1', revokedAt: null },
         data: { revokedAt: expect.any(Date) },
       });
       expect(session.access_token).toBe('access-token');
@@ -145,6 +149,7 @@ describe('AuthService', () => {
         usedAt: null,
         expiresAt: new Date(Date.now() + 100000),
       });
+      (prisma.emailToken.updateMany as jest.Mock).mockResolvedValue({ count: 1 });
       await service.resetPassword('tok', 'newpass123');
       expect(prisma.user.update).toHaveBeenCalledWith({
         where: { id: 'u1' },

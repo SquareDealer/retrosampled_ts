@@ -14,7 +14,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { SamplesService } from './samples.service';
+import { SamplesService, MAX_AUDIO_BYTES } from './samples.service';
 import { QuerySamplesDto } from './dto/query-samples.dto';
 import { CreateSampleDto } from './dto/create-sample.dto';
 import { UpdateSampleDto } from './dto/update-sample.dto';
@@ -35,7 +35,10 @@ export class SamplesController {
   // arrive as multipart/form-data.
   @Post()
   @UseGuards(JwtAuthGuard)
-  @UseInterceptors(FileInterceptor('audio'))
+  @UseInterceptors(
+    // Bound memory: multer aborts oversized uploads before buffering them.
+    FileInterceptor('audio', { limits: { fileSize: MAX_AUDIO_BYTES } }),
+  )
   upload(
     @UploadedFile() file: Express.Multer.File,
     @Body() dto: CreateSampleDto,

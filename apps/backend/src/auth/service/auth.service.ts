@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { randomBytes } from 'crypto';
-import { EmailTokenType, User } from '@prisma/client';
+import { EmailTokenType, Prisma, User } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TokenService } from './token.service';
 import { MailService } from './mail.service';
@@ -95,13 +95,19 @@ export class AuthService {
       throw new UnauthorizedException('Refresh token invalid/expired');
     }
 
-    // Rotate: revoke the old token, then mint a fresh session.
-    await this.prisma.refreshToken.update({
-      where: { id: stored.id },
-      data: { revokedAt: new Date() },
+    // Rotate atomically: revoke the old token and mint the new one in one
+    // transaction so a partial failure can't strand the user without a token.
+    // The revoke is guarded on revokedAt:null to defeat refresh-token replay.
+    return this.prisma.$transaction(async (tx) => {
+      const revoked = await tx.refreshToken.updateMany({
+        where: { id: stored.id, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+      if (revoked.count === 0) {
+        throw new UnauthorizedException('Refresh token invalid/expired');
+      }
+      return this.createSession(stored.user, tx);
     });
-
-    return this.createSession(stored.user);
   }
 
   async logout(rawRefreshToken?: string): Promise<void> {
@@ -141,10 +147,7 @@ export class AuthService {
       data: { passwordHash },
     });
     // Invalidate all existing sessions after a password reset.
-    await this.prisma.refreshToken.updateMany({
-      where: { userId: record.userId, revokedAt: null },
-      data: { revokedAt: new Date() },
-    });
+    await this.revokeAllSessions(record.userId);
   }
 
   async changePassword(
@@ -161,6 +164,8 @@ export class AuthService {
       where: { id: userId },
       data: { passwordHash },
     });
+    // A password change invalidates other active sessions.
+    await this.revokeAllSessions(userId);
   }
 
   async updateUser(
@@ -188,6 +193,10 @@ export class AuthService {
       where: { id: userId },
       data: patch,
     });
+    // Changing the password invalidates other active sessions.
+    if (data.password) {
+      await this.revokeAllSessions(userId);
+    }
     return { id: user.id, email: user.email };
   }
 
@@ -222,11 +231,14 @@ export class AuthService {
 
   // --- internals ----------------------------------------------------------
 
-  private async createSession(user: User): Promise<AuthSession> {
+  private async createSession(
+    user: User,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<AuthSession> {
     const access = this.tokens.signAccessToken(user);
     const refresh = this.tokens.createRefreshToken();
 
-    await this.prisma.refreshToken.create({
+    await client.refreshToken.create({
       data: {
         userId: user.id,
         tokenHash: refresh.hash,
@@ -260,6 +272,13 @@ export class AuthService {
     send(raw);
   }
 
+  private async revokeAllSessions(userId: string): Promise<void> {
+    await this.prisma.refreshToken.updateMany({
+      where: { userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+  }
+
   private async consumeEmailToken(rawToken: string, type: EmailTokenType) {
     const tokenHash = this.tokens.hash(rawToken);
     const record = await this.prisma.emailToken.findUnique({
@@ -269,16 +288,20 @@ export class AuthService {
     if (
       !record ||
       record.type !== type ||
-      record.usedAt ||
       record.expiresAt.getTime() <= Date.now()
     ) {
       throw new BadRequestException('Token is invalid or expired');
     }
 
-    await this.prisma.emailToken.update({
-      where: { id: record.id },
+    // Atomically claim the token: only the first caller flips usedAt from null,
+    // so a token can never be consumed twice under concurrency.
+    const claimed = await this.prisma.emailToken.updateMany({
+      where: { id: record.id, usedAt: null },
       data: { usedAt: new Date() },
     });
+    if (claimed.count === 0) {
+      throw new BadRequestException('Token is invalid or expired');
+    }
 
     return record;
   }

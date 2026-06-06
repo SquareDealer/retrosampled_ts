@@ -18,6 +18,7 @@ import { RegisterDto } from '../dto/register.dto';
 import { SignInDto } from '../dto/sign-in.dto';
 import {
   getAccessTokenCookieOptions,
+  getClearCookieOptions,
   getRefreshTokenCookieOptions,
 } from '../../config/auth-cookie.config';
 
@@ -49,6 +50,12 @@ export class AuthController {
       session.refresh_token,
       getRefreshTokenCookieOptions(this.configService),
     );
+  }
+
+  private clearSessionCookies(res: Response): void {
+    const options = getClearCookieOptions(this.configService);
+    res.clearCookie('access_token', options);
+    res.clearCookie('refresh_token', options);
   }
 
   // Регистрация нового пользователя
@@ -111,8 +118,7 @@ export class AuthController {
   @Post('logout')
   async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     await this.authService.logout(req.cookies['refresh_token']);
-    res.clearCookie('access_token', { path: '/' });
-    res.clearCookie('refresh_token', { path: '/' });
+    this.clearSessionCookies(res);
     return { message: 'Logged out' };
   }
 
@@ -194,8 +200,7 @@ export class AuthController {
       throw new BadRequestException('Password is required');
     }
     await this.authService.deleteUser(req.user!.sub, body.password);
-    res.clearCookie('access_token', { path: '/' });
-    res.clearCookie('refresh_token', { path: '/' });
+    this.clearSessionCookies(res);
     return { message: 'Account deleted successfully' };
   }
 

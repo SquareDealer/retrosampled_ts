@@ -88,8 +88,8 @@ export type SampleDetail = {
   authors: SampleAuthor[];
   creators: CreatorViewModel[];
   coverUrl?: string;
-  bpm: number;
-  musicalKey: string;
+  bpm: number | null;
+  musicalKey: string | null;
   tags: string[];
   likesCount: number;
   isLiked: boolean;

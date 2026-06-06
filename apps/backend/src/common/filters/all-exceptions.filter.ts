@@ -7,6 +7,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
+import { MulterError } from 'multer';
 
 type ExceptionResponseShape = {
   message?: string | string[];
@@ -26,7 +27,15 @@ export class AllExceptionsFilter implements ExceptionFilter {
     let message: string | string[] = 'Internal server error';
     let error = 'Internal Server Error';
 
-    if (exception instanceof HttpException) {
+    if (exception instanceof MulterError) {
+      // e.g. file too large — a client error, not a 500.
+      statusCode = HttpStatus.BAD_REQUEST;
+      error = 'Bad Request';
+      message =
+        exception.code === 'LIMIT_FILE_SIZE'
+          ? 'Audio file exceeds the 30 MB limit'
+          : exception.message;
+    } else if (exception instanceof HttpException) {
       statusCode = exception.getStatus();
       const exceptionResponse = exception.getResponse();
 

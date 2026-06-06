@@ -114,6 +114,35 @@ describe('Sample upload (e2e)', () => {
     expect(feed.body.samples.some((s: { id: string }) => s.id === id)).toBe(true);
   });
 
+  it('hides a draft/private sample from non-owners on detail and download', async () => {
+    const created = await agent
+      .post('/samples')
+      .field('title', 'Secret Draft')
+      .field('durationSec', '18')
+      .field('peaks', peaks)
+      .attach('audio', Buffer.from('RIFFsecret'), {
+        filename: 's.wav',
+        contentType: 'audio/wav',
+      })
+      .expect(201);
+    const id = created.body.id; // status DRAFT
+
+    // Owner can see and download it.
+    await agent.get(`/samples/${id}`).expect(200);
+    await agent.post(`/samples/${id}/downloads`).expect(201);
+
+    // Anonymous and other users get 404 (existence not revealed).
+    await request(server).get(`/samples/${id}`).expect(404);
+
+    const stranger = request.agent(server);
+    await stranger
+      .post('/auth/register')
+      .send({ email: `peeker_${Date.now()}@test.dev`, password: 'secret123' })
+      .expect(201);
+    await stranger.get(`/samples/${id}`).expect(404);
+    await stranger.post(`/samples/${id}/downloads`).expect(404);
+  });
+
   it('rejects another user editing the sample', async () => {
     const created = await agent
       .post('/samples')

@@ -174,7 +174,6 @@ const MOCK_CREATOR_PROFILES: Record<string, MockCreatorProfile> = {
   },
 };
 
-const MOCK_COMMENT_AUTHOR_ID = "u2";
 const DEFAULT_COMMENTS_DELAY_MS = 360;
 
 const MINUTE_MS = 60 * 1000;
@@ -769,24 +768,18 @@ export const fetchSampleById = async (
   return toSampleDetail(found.sample, found.bucket, allEntries);
 };
 
+// Write actions surface every failure (HTTP error or network error) so the
+// caller can roll back its optimistic UI — they must never fake success.
 export const toggleSampleLike = async (
   sampleId: string,
   nextLiked: boolean
 ): Promise<void> => {
-  try {
-    const response = await fetch(`${API_URL}/samples/${sampleId}/like`, {
-      method: nextLiked ? "PUT" : "DELETE",
-      credentials: "include",
-    });
-    if (!response.ok) {
-      throw new Error("Like request failed.");
-    }
-  } catch (error) {
-    // A real HTTP rejection should surface (and roll back the optimistic UI);
-    // a network failure (backend unreachable) degrades gracefully.
-    if (error instanceof Error && error.message === "Like request failed.") {
-      throw error;
-    }
+  const response = await fetch(`${API_URL}/samples/${sampleId}/like`, {
+    method: nextLiked ? "PUT" : "DELETE",
+    credentials: "include",
+  });
+  if (!response.ok) {
+    throw new Error("Like request failed.");
   }
 };
 
@@ -794,27 +787,13 @@ export const toggleCreatorFollow = async (
   creatorId: string,
   nextFollowing: boolean
 ): Promise<void> => {
-  try {
-    const response = await fetch(`${API_URL}/creators/${creatorId}/follow`, {
-      method: nextFollowing ? "PUT" : "DELETE",
-      credentials: "include",
-    });
-    if (!response.ok) {
-      throw new Error("Creator follow request failed.");
-    }
-  } catch (error) {
-    if (
-      error instanceof Error &&
-      error.message === "Creator follow request failed."
-    ) {
-      throw error;
-    }
+  const response = await fetch(`${API_URL}/creators/${creatorId}/follow`, {
+    method: nextFollowing ? "PUT" : "DELETE",
+    credentials: "include",
+  });
+  if (!response.ok) {
+    throw new Error("Creator follow request failed.");
   }
-};
-
-const createCommentId = (): string => {
-  const random = Math.random().toString(36).slice(2, 8);
-  return `c-${Date.now()}-${random}`;
 };
 
 export const fetchSampleComments = async (
@@ -865,49 +844,18 @@ export const createComment = async (
     throw new Error("Comment text is required.");
   }
 
-  try {
-    const response = await fetch(
-      `${API_URL}/samples/${encodeURIComponent(sampleId)}/comments`,
-      {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: normalizedText, parentId }),
-      }
-    );
-    if (response.ok) {
-      return (await response.json()) as SampleComment;
+  // A write must reflect real server state — never fabricate a local comment.
+  const response = await fetch(
+    `${API_URL}/samples/${encodeURIComponent(sampleId)}/comments`,
+    {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: normalizedText, parentId }),
     }
-    if (!response.ok) {
-      throw new Error("Comment request failed.");
-    }
-  } catch (error) {
-    if (error instanceof Error && error.message === "Comment request failed.") {
-      throw error;
-    }
-    // Network failure — fall back to the in-memory mock store.
+  );
+  if (!response.ok) {
+    throw new Error("Comment request failed.");
   }
-
-  const comments = ensureCommentsInStore(sampleId);
-  const createdComment: SampleComment = {
-    id: createCommentId(),
-    user: toCommentUser(MOCK_COMMENT_AUTHOR_ID),
-    text: normalizedText,
-    createdAt: new Date().toISOString(),
-    parentId,
-    replies: parentId ? undefined : [],
-    isOwner: true,
-  };
-
-  if (parentId) {
-    const parent = comments.find((comment) => comment.id === parentId);
-    if (!parent) {
-      throw new Error("Parent comment not found.");
-    }
-    parent.replies = [...(parent.replies ?? []), createdComment];
-    return cloneComment(createdComment);
-  }
-
-  comments.unshift(createdComment);
-  return cloneComment(createdComment);
+  return (await response.json()) as SampleComment;
 };
