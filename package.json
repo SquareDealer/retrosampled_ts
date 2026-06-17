@@ -13,6 +13,7 @@
     "typecheck": "turbo typecheck"
   },
   "devDependencies": {
+    "agentation": "^3.0.2",
     "turbo": "^2.1.3"
   }
 }

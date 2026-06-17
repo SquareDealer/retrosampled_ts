@@ -7,7 +7,7 @@
   display: flex;
   align-items: center;
   gap: clamp(8px, 1.5vw, 20px);
-  padding-block: clamp(10px, 1.25vw, 16px);
+  padding-block: clamp(8px, 1vw, 12px);
   padding-inline: clamp(12px, 3vw, 28px);
   border-bottom: 1px solid #191919;
   font-size: 13px;
@@ -17,6 +17,18 @@
 
 .sample-row:hover {
   background: #0a0a0a;
+}
+
+.sample-row--compact {
+  margin-left: clamp(18px, 4vw, 54px);
+  padding-block: clamp(6px, 0.8vw, 10px);
+  padding-inline: clamp(10px, 2vw, 20px);
+  background: #050505;
+  font-size: 12px;
+}
+
+.sample-row--compact:hover {
+  background: #0d0d0d;
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -31,6 +43,15 @@
   max-width: clamp(180px, 30vw, 300px);
   min-width: clamp(128px, 20vw, 220px);
   overflow: hidden;
+}
+
+.sample-row__remakes-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  min-width: 24px;
+  height: 24px;
 }
 
 .sample-row__avatar {
@@ -251,6 +272,59 @@
   background-image: url('/img/active_heart_icon.png');
 }
 
+.sample-row__remakes-toggle {
+  width: 24px;
+  height: 24px;
+  border: 1px solid #ffffff30;
+  border-radius: 0;
+  background: transparent;
+  color: #ffffff80;
+  cursor: pointer;
+  padding: 0;
+  font-size: 12px;
+  line-height: 1;
+  transition: transform 0.12s, border-color 0.12s, color 0.12s;
+}
+
+.sample-row__remakes-toggle:hover,
+.sample-row__remakes-toggle:focus-visible {
+  border-color: #f4dd00;
+  color: #f4dd00;
+}
+
+.sample-row__remakes-toggle--expanded {
+  transform: rotate(90deg);
+  border-color: #f4dd00;
+  color: #f4dd00;
+}
+
+.sample-row--compact .sample-row__avatar {
+  width: 36px;
+  height: 36px;
+}
+
+.sample-row--compact .sample-row__title {
+  font-size: 12px;
+}
+
+.sample-row--compact .sample-row__author,
+.sample-row--compact .sample-row__likes-count {
+  font-size: 10px;
+}
+
+.sample-row--compact .sample-row__waveform {
+  flex-basis: 160px;
+  width: 160px;
+  min-width: 160px;
+  max-width: 160px;
+  height: 40px;
+}
+
+.sample-row--compact .sample-row__play-icon {
+  width: 18px;
+  height: 14px;
+}
+
 /* ─────────────────────────────────────────────────────────────
    Responsive Breakpoints
    ───────────────────────────────────────────────────────────── */
@@ -295,6 +369,10 @@
   .sample-row__actions {
     justify-content: flex-start;
   }
+
+  .sample-row--compact {
+    margin-left: clamp(12px, 4vw, 28px);
+  }
 }
 
 @media (max-width: 560px) {
@@ -322,5 +400,12 @@
   .sample-row__bpm {
     width: auto;
     min-width: 0;
+  }
+
+  .sample-row--compact .sample-row__waveform {
+    flex-basis: clamp(110px, 40vw, 160px);
+    width: auto;
+    min-width: clamp(100px, 36vw, 160px);
+    max-width: 160px;
   }
 }

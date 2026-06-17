@@ -1,23 +1,34 @@
-import { Controller } from "@nestjs/common";
-import { CreatorsService } from "../service/creators.service";
-import { Post, Req, UseGuards } from "@nestjs/common";
-import { SupabaseAuthGuard } from "../../auth/supabase-auth.guard";
-
+import {
+  Controller,
+  Delete,
+  Param,
+  Post,
+  Put,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
+import { CreatorsService } from '../service/creators.service';
+import { JwtAuthGuard, AuthenticatedRequest } from '../../auth/jwt-auth.guard';
 
 @Controller('creators')
 export class CreatorsController {
+  constructor(private readonly creatorsService: CreatorsService) {}
 
-    constructor(private readonly creatorsService: CreatorsService) {}
-    
-    @Post('become')
-    @UseGuards(SupabaseAuthGuard)
-    become(@Req() req) {
-        const token = req.token || req.headers.authorization?.split(' ')[1];
-        
-        if (!token) {
-            throw new Error('Token not found');
-        }
+  @Post('become')
+  @UseGuards(JwtAuthGuard)
+  become(@Req() req: AuthenticatedRequest) {
+    return this.creatorsService.becomeCreator(req.user!.sub);
+  }
 
-        return this.creatorsService.becomeCreator(token);
-    }
+  @Put(':id/follow')
+  @UseGuards(JwtAuthGuard)
+  follow(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+    return this.creatorsService.follow(req.user!.sub, id);
+  }
+
+  @Delete(':id/follow')
+  @UseGuards(JwtAuthGuard)
+  unfollow(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+    return this.creatorsService.unfollow(req.user!.sub, id);
+  }
 }

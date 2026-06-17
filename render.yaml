@@ -1,0 +1,71 @@
+# Render Blueprint — one-click-ish deploy of the API, database and SPA.
+# Docs: https://render.com/docs/blueprint-spec
+#
+# After creating the blueprint, set the `sync: false` secrets in the dashboard
+# (CORS_ORIGIN, APP_URL, VITE_API_URL, and the STORAGE_* / RESEND_* values for
+# Cloudflare R2 + Resend).
+
+databases:
+  - name: retrosamples-db
+    plan: free
+    databaseName: retrosamples
+    user: retro
+
+services:
+  # --- API (NestJS, Docker) ------------------------------------------------
+  - type: web
+    name: retrosamples-api
+    runtime: docker
+    plan: free
+    dockerfilePath: ./apps/backend/Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: retrosamples-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: COOKIE_SAMESITE
+        value: none # SPA and API are on different domains
+      - key: CORS_ORIGIN
+        sync: false # e.g. https://retrosamples-web.onrender.com
+      - key: APP_URL
+        sync: false # public SPA URL (used in email links)
+      # Object storage (Cloudflare R2). Leave unset to use local disk (ephemeral).
+      - key: STORAGE_DRIVER
+        value: s3
+      - key: STORAGE_BUCKET
+        sync: false
+      - key: STORAGE_ENDPOINT
+        sync: false
+      - key: STORAGE_REGION
+        value: auto
+      - key: STORAGE_ACCESS_KEY
+        sync: false
+      - key: STORAGE_SECRET_KEY
+        sync: false
+      - key: STORAGE_PUBLIC_URL
+        sync: false
+      # Email (Resend)
+      - key: RESEND_API_KEY
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+
+  # --- Web (Vite SPA, static) ---------------------------------------------
+  - type: web
+    name: retrosamples-web
+    runtime: static
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @retrosampled/frontend build
+    staticPublishPath: ./apps/frontend/dist
+    envVars:
+      - key: VITE_API_URL
+        sync: false # the API service URL, e.g. https://retrosamples-api.onrender.com
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

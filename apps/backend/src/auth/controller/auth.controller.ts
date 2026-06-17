@@ -10,16 +10,24 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Throttle } from '@nestjs/throttler';
 import { Request, Response } from 'express';
 import { AuthService } from '../service/auth.service';
-import { SupabaseAuthGuard } from '../supabase-auth.guard';
+import { JwtAuthGuard, AuthenticatedRequest } from '../jwt-auth.guard';
 import { RegisterDto } from '../dto/register.dto';
-import { SignInDto } from '../dto/singn-in.dto';
+import { SignInDto } from '../dto/sign-in.dto';
 import {
   getAccessTokenCookieOptions,
   getRefreshTokenCookieOptions,
 } from '../../config/auth-cookie.config';
 
+// Tighter rate limit on auth endpoints to slow credential-stuffing.
+@Throttle({
+  default: {
+    ttl: Number(process.env.THROTTLE_TTL ?? 60000),
+    limit: Number(process.env.AUTH_THROTTLE_LIMIT ?? 50),
+  },
+})
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -27,47 +35,10 @@ export class AuthController {
     private readonly configService: ConfigService,
   ) {}
 
-  // Регистрация нового пользователя
-  @Post('register')
-  async register(
-    @Body() dto: RegisterDto,
-    @Res({ passthrough: true }) res: Response,
-  ) {
-    const result = await this.authService.signUp(dto.email, dto.password);
-
-    // Если Supabase сразу выдал сессию (email confirmation отключен)
-    if (result.session) {
-      res.cookie(
-        'access_token',
-        result.session.access_token,
-        getAccessTokenCookieOptions(this.configService, result.session.expires_in),
-      );
-      res.cookie(
-        'refresh_token',
-        result.session.refresh_token,
-        getRefreshTokenCookieOptions(this.configService),
-      );
-    }
-
-    return {
-      message: result.session
-        ? 'Registered and logged in'
-        : 'Confirmation email sent',
-      user: result.user,
-    };
-  }
-
-  // Логин с паролем
-  @Post('login')
-  async login(
-    @Body() dto: SignInDto,
-    @Res({ passthrough: true }) res: Response,
-  ) {
-    const session = await this.authService.loginWithPassword(
-      dto.email,
-      dto.password,
-    );
-
+  private setSessionCookies(
+    res: Response,
+    session: { access_token: string; refresh_token: string; expires_in: number },
+  ): void {
     res.cookie(
       'access_token',
       session.access_token,
@@ -78,6 +49,36 @@ export class AuthController {
       session.refresh_token,
       getRefreshTokenCookieOptions(this.configService),
     );
+  }
+
+  // Регистрация нового пользователя
+  @Post('register')
+  async register(
+    @Body() dto: RegisterDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const { user, session } = await this.authService.signUp(
+      dto.email,
+      dto.password,
+      dto.username,
+    );
+    this.setSessionCookies(res, session);
+
+    return {
+      message: 'Registered and logged in',
+      user,
+      expiresIn: session.expires_in,
+    };
+  }
+
+  // Логин с паролем
+  @Post('login')
+  async login(
+    @Body() dto: SignInDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const session = await this.authService.login(dto.email, dto.password);
+    this.setSessionCookies(res, session);
 
     return {
       message: 'Logged in',
@@ -98,17 +99,7 @@ export class AuthController {
     }
 
     const session = await this.authService.refresh(refreshToken);
-
-    res.cookie(
-      'access_token',
-      session.access_token,
-      getAccessTokenCookieOptions(this.configService, session.expires_in),
-    );
-    res.cookie(
-      'refresh_token',
-      session.refresh_token,
-      getRefreshTokenCookieOptions(this.configService),
-    );
+    this.setSessionCookies(res, session);
 
     return {
       message: 'Session refreshed',
@@ -116,23 +107,20 @@ export class AuthController {
     };
   }
 
-  // Логаут — удаляем cookies
+  // Логаут — отзываем refresh token и чистим cookies
   @Post('logout')
   async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
-    const accessToken = req.cookies['access_token'];
-    if (accessToken) {
-      await this.authService.signOut(accessToken);
-    }
+    await this.authService.logout(req.cookies['refresh_token']);
     res.clearCookie('access_token', { path: '/' });
     res.clearCookie('refresh_token', { path: '/' });
     return { message: 'Logged out' };
   }
 
   // Получить текущего пользователя (защищённый роут)
-  @UseGuards(SupabaseAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @Get('me')
-  async me(@Req() req: Request) {
-    return { user: (req as any).user };
+  async me(@Req() req: AuthenticatedRequest) {
+    return { user: req.user };
   }
 
   // Запрос на сброс пароля
@@ -141,80 +129,81 @@ export class AuthController {
     if (!body.email) {
       throw new BadRequestException('Email is required');
     }
-    await this.authService.resetPasswordForEmail(body.email);
+    await this.authService.forgotPassword(body.email);
     return { message: 'Password reset link sent to email' };
   }
 
   // Сброс пароля по токену из письма
   @Post('reset-password')
-  async resetPassword(
-    @Body() body: { token: string; newPassword: string },
-  ) {
+  async resetPassword(@Body() body: { token: string; newPassword: string }) {
     if (!body.token || !body.newPassword) {
       throw new BadRequestException('Token and newPassword are required');
     }
-    await this.authService.resetPasswordWithToken(body.token, body.newPassword);
+    await this.authService.resetPassword(body.token, body.newPassword);
     return { message: 'Password reset successfully' };
   }
 
+  // Подтверждение email по токену из письма
+  @Post('verify-email')
+  async verifyEmail(@Body() body: { token: string }) {
+    if (!body.token) {
+      throw new BadRequestException('Token is required');
+    }
+    await this.authService.verifyEmail(body.token);
+    return { message: 'Email verified' };
+  }
+
   // Изменение пароля (для уже логиненного пользователя)
-  @UseGuards(SupabaseAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @Post('change-password')
   async changePassword(
     @Body() body: { oldPassword: string; newPassword: string },
-    @Req() req: Request,
+    @Req() req: AuthenticatedRequest,
   ) {
-    const user = (req as any).user;
     if (!body.oldPassword || !body.newPassword) {
       throw new BadRequestException('Old and new passwords are required');
     }
     await this.authService.changePassword(
-      user.email,
+      req.user!.sub,
       body.oldPassword,
       body.newPassword,
     );
     return { message: 'Password changed successfully' };
   }
 
-  // Обновление профиля (email, данные)
-  @UseGuards(SupabaseAuthGuard)
+  // Обновление учётных данных (email/пароль)
+  @UseGuards(JwtAuthGuard)
   @Post('update-profile')
   async updateProfile(
     @Body() body: { email?: string; password?: string },
-    @Req() req: Request,
+    @Req() req: AuthenticatedRequest,
   ) {
-    const user = (req as any).user;
-    const result = await this.authService.updateUser(user.sub, body);
+    const result = await this.authService.updateUser(req.user!.sub, body);
     return { message: 'Profile updated', user: result };
   }
 
   // Удаление аккаунта
-  @UseGuards(SupabaseAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @Post('delete-account')
   async deleteAccount(
     @Body() body: { password: string },
-    @Req() req: Request,
+    @Req() req: AuthenticatedRequest,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const user = (req as any).user;
     if (!body.password) {
       throw new BadRequestException('Password is required');
     }
-    await this.authService.deleteUser(user.email, body.password);
-    
-    // Очистить cookies
+    await this.authService.deleteUser(req.user!.sub, body.password);
     res.clearCookie('access_token', { path: '/' });
     res.clearCookie('refresh_token', { path: '/' });
-    
     return { message: 'Account deleted successfully' };
   }
 
-  // Отправка письма подтверждения (для смены email)
-  @UseGuards(SupabaseAuthGuard)
+  // Повторная отправка письма подтверждения
+  @UseGuards(JwtAuthGuard)
   @Post('send-verification-email')
-  async sendVerificationEmail(@Req() req: Request) {
-    const user = (req as any).user;
-    await this.authService.sendVerificationEmail(user.email);
+  async sendVerificationEmail(@Req() req: AuthenticatedRequest) {
+    await this.authService.sendVerificationEmail(req.user!.sub);
     return { message: 'Verification email sent' };
   }
 }

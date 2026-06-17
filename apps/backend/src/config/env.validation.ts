@@ -1,9 +1,11 @@
 type EnvConfig = {
   NODE_ENV?: string;
   PORT?: string | number;
-  SUPABASE_URL?: string;
-  SUPABASE_ANON_KEY?: string;
-  SUPABASE_KEY?: string;
+  DATABASE_URL?: string;
+  JWT_SECRET?: string;
+  JWT_ACCESS_TTL?: string | number;
+  JWT_REFRESH_TTL?: string | number;
+  APP_URL?: string;
 };
 
 const VALID_NODE_ENVS = new Set(['development', 'test', 'production']);
@@ -21,7 +23,22 @@ function parsePort(value: unknown): number {
   return parsed;
 }
 
-export function validateEnv(config: Record<string, unknown>): Record<string, unknown> {
+function parsePositiveInt(value: unknown, fallback: number, name: string): number {
+  if (value == null || value === '') {
+    return fallback;
+  }
+
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    throw new Error(`${name} must be a positive integer`);
+  }
+
+  return parsed;
+}
+
+export function validateEnv(
+  config: Record<string, unknown>,
+): Record<string, unknown> {
   const env = config as EnvConfig;
   const errors: string[] = [];
 
@@ -36,19 +53,33 @@ export function validateEnv(config: Record<string, unknown>): Record<string, unk
     errors.push((error as Error).message);
   }
 
-  if (!env.SUPABASE_URL) {
-    errors.push('SUPABASE_URL is required');
-  } else {
-    try {
-      // Ensure valid URL format before app startup.
-      new URL(env.SUPABASE_URL);
-    } catch {
-      errors.push('SUPABASE_URL must be a valid URL');
-    }
+  if (!env.DATABASE_URL) {
+    errors.push('DATABASE_URL is required');
+  } else if (!/^postgres(ql)?:\/\//.test(env.DATABASE_URL)) {
+    errors.push('DATABASE_URL must be a postgres:// connection string');
   }
 
-  if (!env.SUPABASE_ANON_KEY && !env.SUPABASE_KEY) {
-    errors.push('SUPABASE_ANON_KEY or SUPABASE_KEY is required');
+  if (!env.JWT_SECRET) {
+    errors.push('JWT_SECRET is required');
+  } else if (env.JWT_SECRET.length < 16) {
+    errors.push('JWT_SECRET must be at least 16 characters');
+  }
+
+  let accessTtl = 3600;
+  let refreshTtl = 60 * 60 * 24 * 30;
+  try {
+    accessTtl = parsePositiveInt(env.JWT_ACCESS_TTL, 3600, 'JWT_ACCESS_TTL');
+  } catch (error) {
+    errors.push((error as Error).message);
+  }
+  try {
+    refreshTtl = parsePositiveInt(
+      env.JWT_REFRESH_TTL,
+      60 * 60 * 24 * 30,
+      'JWT_REFRESH_TTL',
+    );
+  } catch (error) {
+    errors.push((error as Error).message);
   }
 
   if (errors.length > 0) {
@@ -59,5 +90,8 @@ export function validateEnv(config: Record<string, unknown>): Record<string, unk
     ...config,
     NODE_ENV: nodeEnv,
     PORT: parsePort(env.PORT),
+    JWT_ACCESS_TTL: accessTtl,
+    JWT_REFRESH_TTL: refreshTtl,
+    APP_URL: env.APP_URL ?? 'http://localhost:5173',
   };
 }

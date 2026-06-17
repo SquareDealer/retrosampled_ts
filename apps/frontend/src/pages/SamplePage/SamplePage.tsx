@@ -4,9 +4,9 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   fetchSampleById,
   fetchSampleComments,
-  mockCreateCommentRequest,
-  mockToggleCreatorFollowRequest,
-  mockToggleLikeRequest,
+  createComment,
+  toggleCreatorFollow,
+  toggleSampleLike,
 } from "../../api/samples";
 import { CommentsSection } from "../../components/sample-page/CommentsSection";
 import { SampleActionsBar } from "../../components/sample-page/SampleActionsBar";
@@ -111,10 +111,6 @@ const SamplePage: React.FC = () => {
 
   const menuRef = useRef<HTMLDivElement | null>(null);
   const noticeTimerRef = useRef<number | null>(null);
-
-  const authorNames = useMemo(() => {
-    return sample?.authors.map((author) => author.name) ?? [];
-  }, [sample]);
 
   const creatorsWithFollowState = useMemo(() => {
     if (!sample) {
@@ -291,7 +287,7 @@ const SamplePage: React.FC = () => {
     });
 
     try {
-      await mockToggleLikeRequest(sample.id, nextIsLiked);
+      await toggleSampleLike(sample.id, nextIsLiked);
     } catch {
       setSample((current) => {
         if (!current) {
@@ -395,7 +391,7 @@ const SamplePage: React.FC = () => {
     }));
 
     try {
-      await mockToggleCreatorFollowRequest(creatorId, next);
+      await toggleCreatorFollow(creatorId, next);
     } catch {
       setCreatorFollowById((current) => ({
         ...current,
@@ -436,7 +432,7 @@ const SamplePage: React.FC = () => {
     setComments((current) => [temporaryComment, ...current]);
 
     try {
-      const created = await mockCreateCommentRequest(sample.id, text);
+      const created = await createComment(sample.id, text);
 
       setComments((current) => {
         return current.map((comment) => {
@@ -479,7 +475,7 @@ const SamplePage: React.FC = () => {
     });
 
     try {
-      const createdReply = await mockCreateCommentRequest(sample.id, text, parentId);
+      const createdReply = await createComment(sample.id, text, parentId);
 
       setComments((current) => {
         return current.map((comment) => {
@@ -611,7 +607,7 @@ const SamplePage: React.FC = () => {
           <SampleHeader
             title={sample.title}
             inheritedFrom={sample.inheritedFrom}
-            authors={authorNames}
+            authors={sample.authors}
           />
 
           <SampleMeta bpm={sample.bpm} musicalKey={sample.musicalKey} />
