@@ -8,7 +8,11 @@ import SamplePage from './pages/SamplePage/SamplePage';
 import FeedPage from './pages/FeedPage/FeedPage';
 import LibraryPage from './pages/LibraryPage/LibraryPage';
 import HeaderNavBar, { NavItemKey } from './components/HeaderNavBar';
+import RequireAuth from './components/RequireAuth';
+import RequireRole from './components/RequireRole';
+import AdminPage from './pages/AdminPage/AdminPage';
 import { useAuth } from './auth/useAuth';
+import { can } from '@retrosampled/shared';
 
 const NAV_ROUTES: Record<NavItemKey, string> = {
   home: '/',
@@ -23,6 +27,11 @@ function App() {
   const { user, status, logout, openAuthModal } = useAuth();
 
   const isAuthenticated = status === 'authenticated' && Boolean(user);
+
+  // Same predicate the backend enforces with @Roles('ADMIN'), so the link can
+  // never appear for someone the API would answer 403 to.
+  const actor = user ? { id: user.id, role: user.role } : null;
+  const isAdmin = can(actor, 'admin:any');
 
   const activeNavItem: NavItemKey | null =
     location.pathname === NAV_ROUTES.home
@@ -76,6 +85,8 @@ function App() {
               navigate(`/user/${user.username}`);
             }
           }}
+          showAdminLink={isAdmin}
+          onAdminClick={() => navigate('/admin')}
           onNotificationsClick={() => navigate('/notifications')}
           onMoreActionsClick={() => {
             void logout();
@@ -100,6 +111,16 @@ function App() {
           <Route path="/user/:creatorId" element={<UserPage />} />
           <Route path="/upload" element={<UserPage />} />
           <Route path="/notifications" element={<UserPage />} />
+          <Route
+            path="/admin"
+            element={
+              <RequireAuth>
+                <RequireRole role="ADMIN" fallback="forbidden">
+                  <AdminPage />
+                </RequireRole>
+              </RequireAuth>
+            }
+          />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
 

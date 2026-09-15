@@ -23,6 +23,9 @@ export type HeaderNavBarProps = {
 
   onUploadClick?: () => void;
   onUserAccountClick?: () => void;
+  /** Task 2: rendered only when `can(user, "admin:any")` — see App.tsx. */
+  showAdminLink?: boolean;
+  onAdminClick?: () => void;
   onNotificationsClick?: () => void;
   onMoreActionsClick?: () => void;
 
@@ -53,6 +56,8 @@ export const HeaderNavBar: React.FC<HeaderNavBarProps> = ({
   onCreateAccountClick,
   onUploadClick,
   onUserAccountClick,
+  showAdminLink = false,
+  onAdminClick,
   onNotificationsClick,
   onMoreActionsClick,
   user,
@@ -100,6 +105,16 @@ export const HeaderNavBar: React.FC<HeaderNavBarProps> = ({
             </button>
           );
         })}
+
+        {showAdminLink && (
+          <button
+            type="button"
+            className="header-nav-bar__nav-item header-nav-bar__nav-item--admin"
+            onClick={onAdminClick}
+          >
+            Admin
+          </button>
+        )}
       </nav>
 
       <form className="header-nav-bar__search" role="search" onSubmit={handleSearchSubmit}>

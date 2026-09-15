@@ -6,3 +6,5 @@ export * from './dto/user';
 export * from './dto/sample';
 export * from './dto/library';
 export * from './dto/notification';
+// Task 2
+export * from './dto/admin';

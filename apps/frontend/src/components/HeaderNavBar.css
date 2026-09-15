@@ -409,3 +409,14 @@
     padding-right: 40px;
   }
 }
+
+/* Task 2: admin-only entry point, gated by can(user, "admin:any") in App.tsx. */
+.header-nav-bar__nav-item--admin {
+  border-color: #f4dd00;
+  color: #f4dd00;
+}
+
+.header-nav-bar__nav-item--admin:hover,
+.header-nav-bar__nav-item--admin:focus-visible {
+  background: #f4dd0018;
+}
