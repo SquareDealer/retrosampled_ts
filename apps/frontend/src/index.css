@@ -1,7 +1,46 @@
+/* Design tokens: values match the literals already used across the app.
+   Breakpoints (not tokens): viewport 900/560 for MiniPlayer + header,
+   container "sample-row" 680/460 for SamplePiece. */
+:root {
+  --font-mono: "Roboto Mono", monospace;
+
+  --bg-0: #000000;
+  --bg-1: #050505;
+  --bg-2: #0a0a0a;
+  --bg-3: #101010;
+
+  --border-subtle: #191919;
+  --border: #ffffff20;
+  --border-strong: #ffffff40;
+
+  --text-primary: #ffffff;
+  --text-secondary: #ffffff80;
+  --text-muted: #ffffff60;
+
+  --accent: #f4dd00;
+  --liked: #ff5fa2;
+
+  --fs-2xs: 10px;
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-md: 13px;
+  --fs-base: 14px;
+  --fs-lg: 16px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+
+  --mini-player-height: 56px;
+}
+
 body {
-  background: #000;
-  font-family: "Roboto Mono", monospace;
-  color: #fff;
+  background: var(--bg-0);
+  font-family: var(--font-mono);
+  color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

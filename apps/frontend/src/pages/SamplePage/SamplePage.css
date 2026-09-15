@@ -1,6 +1,6 @@
 .sample-page {
-  --sample-bg: #050505;
-  --sample-card: #101010;
+  --sample-bg: var(--bg-1);
+  --sample-card: var(--bg-3);
   --sample-border: #ffffff26;
   --sample-border-strong: #ffffff40;
   --sample-text: #f6f6f6;
@@ -8,7 +8,7 @@
   --sample-accent: #ffffff;
   --sample-ok: #96ffb0;
   --sample-error: #ff9d9d;
-  --sample-focus: #f4dd00;
+  --sample-focus: var(--accent);
 
   min-height: 100vh;
   padding: 36px clamp(20px, 4vw, 52px) 128px;
@@ -92,7 +92,7 @@
 }
 
 .sample-actions-bar__likes--active {
-  color: #ff5fa2;
+  color: var(--liked);
 }
 
 .sample-actions-bar__button {
@@ -122,8 +122,8 @@
 }
 
 .sample-actions-bar__button--active {
-  color: #ff5fa2;
-  background: #ff5fa21a;
+  color: var(--liked);
+  background: color-mix(in srgb, var(--liked) 10%, transparent);
 }
 
 .sample-actions-bar__button:focus-visible,
@@ -333,7 +333,7 @@
 }
 
 .sample-player__play:hover:not(:disabled) {
-  color: #ff5fa2;
+  color: var(--liked);
 }
 
 .sample-player__play:disabled {
@@ -342,7 +342,7 @@
 }
 
 .sample-player__play--active {
-  color: #ff5fa2;
+  color: var(--liked);
 }
 
 .sample-player__play-triangle {
@@ -599,7 +599,7 @@
 }
 
 .related-samples__likes--active {
-  color: #ff5fa2;
+  color: var(--liked);
 }
 
 .related-samples__like {
@@ -638,9 +638,9 @@
 }
 
 .related-samples__add-remake:hover {
-  border-color: #ff5fa2;
-  color: #ff5fa2;
-  background: #ff5fa208;
+  border-color: var(--liked);
+  color: var(--liked);
+  background: color-mix(in srgb, var(--liked) 3%, transparent);
 }
 
 .related-samples__add-remake:focus-visible {
@@ -837,8 +837,8 @@
 }
 
 .creators-card__follow:hover:not(:disabled) {
-  border-color: #ff5fa2;
-  color: #ff5fa2;
+  border-color: var(--liked);
+  color: var(--liked);
 }
 
 .creators-card__follow--following {

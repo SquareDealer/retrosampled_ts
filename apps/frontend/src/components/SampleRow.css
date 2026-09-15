@@ -253,7 +253,7 @@
 }
 
 .sample-row__likes-count--active {
-  color: #e24a4a;
+  color: var(--liked);
 }
 
 .sample-row__like {
