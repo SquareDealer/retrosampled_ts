@@ -381,7 +381,7 @@ const toComparableBpm = (sample: Sample): number | undefined => {
 };
 
 const getMockAccessType = (entry: MockSampleEntry): SamplesAccessType => {
-  return entry.bucket === "premium" || Number(entry.sample.price) > 0 ? "premium" : "free";
+  return entry.bucket === "premium" ? "premium" : "free";
 };
 
 const fetchMockSamples = async (query: FetchSamplesQuery): Promise<FetchSamplesResponse> => {
@@ -608,7 +608,6 @@ const toSampleShort = (sample: Sample, bucket: SampleBucketKey): SampleShort => 
     time: sample.time,
     key: sample.key,
     bpm: Number(sample.bpm),
-    price: Number(sample.price),
     jsonPeaksUrl: sample.jsonPeaksUrl,
     likesCount: calculateLikesCount(String(sample.id)),
     isLiked: bucket === "liked",

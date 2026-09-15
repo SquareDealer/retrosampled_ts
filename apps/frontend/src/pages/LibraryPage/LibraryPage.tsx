@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { getContinueWorkingItems, getLibraryItems, isLibraryAuthorized } from "../../api/library";
 import { useAudioContextManager } from "../../components/AudioContextManager";
 import { WaveformFromJsonForSample } from "../../components/waveform/WaveformFromJsonForSample";
-import { ContinueWorkingItem, LibraryAccessType, LibraryItem, LibraryStatus, LibraryTab } from "../../types/Library";
+import { ContinueWorkingItem, LibraryItem, LibraryStatus, LibraryTab } from "../../types/Library";
 import { Sample } from "../../types/Sample";
 import "./LibraryPage.css";
 
@@ -50,12 +50,6 @@ const statusFilters: FilterOption[] = [
 
 const remakeStatusFilters: FilterOption[] = statusFilters.filter((option) => option.value !== "processing" && option.value !== "failed");
 
-const typeFilters: FilterOption[] = [
-  { value: "", label: "All" },
-  { value: "free", label: "Free" },
-  { value: "premium", label: "Premium" },
-];
-
 const emptyStates: Record<LibraryTab, { title: string; body: string; action: string; href: string }> = {
   liked: {
     title: "You haven't liked anything yet.",
@@ -96,7 +90,6 @@ const readUrlState = () => {
     search: params.get("search") ?? "",
     sort: params.get("sort") ?? defaultSort,
     status: (params.get("status") ?? "") as LibraryStatus | "",
-    type: (params.get("type") ?? "") as LibraryAccessType | "",
     view: params.get("view") === "grid" ? "grid" : "list",
   };
 };
@@ -118,7 +111,6 @@ const toSample = (item: LibraryItem): Sample => ({
   key: item.key ?? "-",
   bpm: item.bpm ?? "-",
   type: item.type,
-  price: item.accessType === "premium" ? "Premium" : "Free",
   jsonPeaksUrl: item.waveformUrl ?? undefined,
 });
 
@@ -133,7 +125,6 @@ const actionsByTab = (tab: LibraryTab, item: LibraryItem) => {
 };
 
 const filterOptionsForTab = (tab: LibraryTab) => {
-  if (tab === "downloaded") return { name: "type", label: "Type", options: typeFilters };
   if (tab === "uploads") return { name: "status", label: "Status", options: statusFilters };
   if (tab === "remakes") return { name: "status", label: "Status", options: remakeStatusFilters };
   return null;
@@ -260,7 +251,7 @@ function LibraryPage() {
   const selectedSort = activeSortOptions.some((option) => option.value === urlState.sort)
     ? urlState.sort
     : activeSortOptions[0].value;
-  const requestKey = `${urlState.tab}|${urlState.search}|${selectedSort}|${urlState.status}|${urlState.type}`;
+  const requestKey = `${urlState.tab}|${urlState.search}|${selectedSort}|${urlState.status}`;
 
   const writeUrlState = (next: Partial<typeof urlState>) => {
     setUrlState((current) => {
@@ -269,7 +260,6 @@ function LibraryPage() {
       if (tabChanged) {
         merged.sort = sortOptions[merged.tab][0].value;
         merged.status = "";
-        merged.type = "";
       }
 
       const params = new URLSearchParams();
@@ -277,7 +267,6 @@ function LibraryPage() {
       if (merged.search.trim()) params.set("search", merged.search.trim());
       if (merged.sort && merged.sort !== sortOptions[merged.tab][0].value) params.set("sort", merged.sort);
       if (merged.status) params.set("status", merged.status);
-      if (merged.type) params.set("type", merged.type);
       if (merged.view !== "list") params.set("view", merged.view);
 
       window.history.pushState(null, "", `/library?${params.toString()}`);
@@ -309,7 +298,6 @@ function LibraryPage() {
       search: urlState.search || undefined,
       sort: selectedSort,
       status: urlState.status || undefined,
-      type: urlState.type || undefined,
       limit: 20,
     })
       .then((response) => {
@@ -328,7 +316,7 @@ function LibraryPage() {
     return () => {
       active = false;
     };
-  }, [authorized, requestKey, selectedSort, urlState.search, urlState.status, urlState.tab, urlState.type]);
+  }, [authorized, requestKey, selectedSort, urlState.search, urlState.status, urlState.tab]);
 
   const loadMore = () => {
     if (!authorized || loading || loadingMore || !nextCursor) return;
@@ -338,7 +326,6 @@ function LibraryPage() {
       search: urlState.search || undefined,
       sort: selectedSort,
       status: urlState.status || undefined,
-      type: urlState.type || undefined,
       cursor: nextCursor,
       limit: 20,
     })
@@ -431,8 +418,8 @@ function LibraryPage() {
               <label>
                 <span>{filter.label}</span>
                 <select
-                  value={filter.name === "type" ? urlState.type : urlState.status}
-                  onChange={(event) => writeUrlState(filter.name === "type" ? { type: event.target.value as LibraryAccessType | "" } : { status: event.target.value as LibraryStatus | "" })}
+                  value={urlState.status}
+                  onChange={(event) => writeUrlState({ status: event.target.value as LibraryStatus | "" })}
                 >
                   {filter.options.map((option) => <option value={option.value} key={option.value || "all"}>{option.label}</option>)}
                 </select>

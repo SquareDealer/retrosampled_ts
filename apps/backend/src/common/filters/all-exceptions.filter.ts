@@ -6,6 +6,7 @@ import {
   HttpStatus,
   Logger,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { Request, Response } from 'express';
 
 type ExceptionResponseShape = {
@@ -22,7 +23,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const response = context.getResponse<Response>();
     const request = context.getRequest<Request>();
 
-    let statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
+    let statusCode: number = HttpStatus.INTERNAL_SERVER_ERROR;
     let message: string | string[] = 'Internal server error';
     let error = 'Internal Server Error';
 
@@ -36,6 +37,22 @@ export class AllExceptionsFilter implements ExceptionFilter {
         const responseShape = exceptionResponse as ExceptionResponseShape;
         message = responseShape.message ?? exception.message;
         error = responseShape.error ?? error;
+      }
+    } else if (exception instanceof Prisma.PrismaClientKnownRequestError) {
+      // Unique constraint violation → 409; record not found → 404.
+      if (exception.code === 'P2002') {
+        statusCode = HttpStatus.CONFLICT;
+        message = 'Resource already exists';
+        error = 'Conflict';
+      } else if (exception.code === 'P2025') {
+        statusCode = HttpStatus.NOT_FOUND;
+        message = 'Resource not found';
+        error = 'Not Found';
+      } else {
+        this.logger.error(
+          `Prisma error ${exception.code}: ${exception.message}`,
+          exception.stack,
+        );
       }
     } else if (exception instanceof Error) {
       message = exception.message;

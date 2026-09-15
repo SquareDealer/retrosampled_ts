@@ -46,7 +46,6 @@ export const SamplePlayer: React.FC<SamplePlayerProps> = ({
       time: duration ? formatTime(duration) : "0:00",
       key: "",
       bpm: 0,
-      price: 0,
       jsonPeaksUrl: waveformPeaksUrl,
     }),
     [audioUrl, duration, sampleId, sampleTitle, waveformPeaksUrl]

@@ -1,19 +1,5 @@
-export interface Sample {
-  id: string | number;
-  authorId: string | number;
-  author?: string;
-  collaboratorIds?: Array<string | number>;
-  title: string;
-  tags: string[];
-  audioUrl: string;
-  time: string;
-  key: string;
-  bpm: string | number;
-  type?: string;
-  price: string | number;
-  likesCount?: number;
-  isLiked?: boolean;
-  remakesCount?: number;
-  remakes?: Sample[];
-  jsonPeaksUrl?: string;
-}
+/**
+ * Re-export shim: the real definitions live in `@retrosampled/shared`.
+ * Task 3.2 deletes this file once every importer points at the package.
+ */
+export type { Sample } from "@retrosampled/shared";

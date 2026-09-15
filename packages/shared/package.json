@@ -1,0 +1,31 @@
+{
+  "name": "@retrosampled/shared",
+  "version": "0.1.0",
+  "private": true,
+  "license": "UNLICENSED",
+  "main": "dist/cjs/index.js",
+  "module": "dist/esm/index.js",
+  "types": "dist/cjs/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/cjs/index.d.ts",
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json && tsc -p tsconfig.esm.json && node ./scripts/write-esm-package-json.cjs",
+    "clean": "rm -rf dist",
+    "lint": "echo \"no lint configured for @retrosampled/shared\"",
+    "test": "jest --passWithNoTests",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "typescript": "^5.5.4"
+  }
+}

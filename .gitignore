@@ -52,3 +52,10 @@ out/
 **/.vitepress/cache
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Local databases (Prisma / SQLite)
+dev.db*
+test.db*
+
+# Uploaded media (local storage driver)
+uploads/

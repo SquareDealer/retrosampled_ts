@@ -40,7 +40,6 @@ const toAudioSample = (sample: SampleShort): Sample => {
     time: sample.time,
     key: sample.key,
     bpm: sample.bpm,
-    price: sample.price,
     jsonPeaksUrl: sample.jsonPeaksUrl,
   };
 };

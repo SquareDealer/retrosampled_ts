@@ -28,7 +28,6 @@ const baseItems: LibraryItem[] = [
     bpm: 85,
     key: "Am",
     tags: ["lofi", "chill", "ambient"],
-    accessType: "free",
     stats: { plays: 1830, likes: 241, downloads: 79, remakes: 12 },
     userState: { liked: true, downloaded: true, owned: false },
     createdAt: date(18),
@@ -46,7 +45,6 @@ const baseItems: LibraryItem[] = [
     bpm: 120,
     key: "Dm",
     tags: ["retro", "synth", "80s"],
-    accessType: "premium",
     stats: { plays: 6210, likes: 842, downloads: 180, remakes: 44 },
     userState: { liked: true, downloaded: false, owned: false },
     createdAt: date(42),
@@ -64,7 +62,6 @@ const baseItems: LibraryItem[] = [
     bpm: 94,
     key: "C#m",
     tags: ["drums", "vhs", "dusty"],
-    accessType: "free",
     stats: { plays: 930, likes: 120, downloads: 320, remakes: 8 },
     userState: { liked: false, downloaded: true, owned: false },
     createdAt: date(7),
@@ -82,7 +79,6 @@ const baseItems: LibraryItem[] = [
     bpm: 76,
     key: "Gm",
     tags: ["soul", "chop", "warm"],
-    accessType: "premium",
     stats: { plays: 4010, likes: 515, downloads: 202, remakes: 31 },
     userState: { liked: true, downloaded: true, owned: false },
     createdAt: date(60),
@@ -100,7 +96,6 @@ const baseItems: LibraryItem[] = [
     bpm: 102,
     key: "Fm",
     tags: ["arcade", "loop", "melody"],
-    accessType: "free",
     stats: { plays: 211, likes: 33, downloads: 14, remakes: 3 },
     userState: { liked: false, downloaded: false, owned: true },
     status: "published",
@@ -119,7 +114,6 @@ const baseItems: LibraryItem[] = [
     bpm: 88,
     key: "Em",
     tags: ["drums", "draft", "tape"],
-    accessType: "free",
     stats: { plays: 0, likes: 0, downloads: 0, remakes: 0 },
     userState: { liked: false, downloaded: false, owned: true },
     status: "draft",
@@ -138,7 +132,6 @@ const baseItems: LibraryItem[] = [
     bpm: 70,
     key: "Bm",
     tags: ["choir", "texture", "private"],
-    accessType: "premium",
     stats: { plays: 51, likes: 7, downloads: 2, remakes: 1 },
     userState: { liked: false, downloaded: false, owned: true },
     status: "private",
@@ -157,7 +150,6 @@ const baseItems: LibraryItem[] = [
     bpm: 96,
     key: "A",
     tags: ["piano", "processing"],
-    accessType: "free",
     stats: { plays: 0, likes: 0, downloads: 0, remakes: 0 },
     userState: { liked: false, downloaded: false, owned: true },
     status: "processing",
@@ -176,7 +168,6 @@ const baseItems: LibraryItem[] = [
     bpm: 120,
     key: "Dm",
     tags: ["remake", "synth", "night"],
-    accessType: "free",
     stats: { plays: 144, likes: 22, downloads: 0, remakes: 0 },
     userState: { liked: false, downloaded: false, owned: true },
     status: "draft",
@@ -196,7 +187,6 @@ const baseItems: LibraryItem[] = [
     bpm: 85,
     key: "Am",
     tags: ["remake", "lofi", "tape"],
-    accessType: "free",
     stats: { plays: 502, likes: 81, downloads: 0, remakes: 0 },
     userState: { liked: true, downloaded: false, owned: true },
     status: "published",
@@ -216,7 +206,6 @@ const baseItems: LibraryItem[] = [
     bpm: null,
     key: null,
     tags: ["remake", "failed"],
-    accessType: "free",
     stats: { plays: 0, likes: 0, downloads: 0, remakes: 0 },
     userState: { liked: false, downloaded: false, owned: true },
     status: "failed",
@@ -289,9 +278,6 @@ export const getLibraryItems = async (query: LibraryQuery): Promise<LibraryRespo
 
   let items = tabItems[query.tab] ?? [];
 
-  if (query.type) {
-    items = items.filter((item) => item.accessType === query.type);
-  }
 
   if (query.status) {
     items = items.filter((item) => item.status === query.status);
