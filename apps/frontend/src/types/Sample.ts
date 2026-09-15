@@ -16,4 +16,5 @@ export interface Sample {
   remakesCount?: number;
   remakes?: Sample[];
   jsonPeaksUrl?: string;
+  coverUrl?: string;
 }

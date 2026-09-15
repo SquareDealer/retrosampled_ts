@@ -4,6 +4,7 @@ import { Sample } from "../../types/Sample";
 import { useAudioContextManager } from "../AudioContextManager";
 import { WaveformFromJsonForSample } from "../waveform/WaveformFromJsonForSample";
 import { WaveformBars } from "../waveform/WaveformBars";
+import { formatTime } from "../../utils/formatTime";
 
 export type SamplePlayerProps = {
   sampleId: string;
@@ -13,13 +14,6 @@ export type SamplePlayerProps = {
   waveformData?: number[];
   duration?: number;
   isPlayable?: boolean;
-};
-
-const formatTime = (totalSeconds: number): string => {
-  const safeSeconds = Math.max(0, Math.floor(totalSeconds));
-  const minutes = Math.floor(safeSeconds / 60);
-  const seconds = safeSeconds % 60;
-  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 };
 
 export const SamplePlayer: React.FC<SamplePlayerProps> = ({

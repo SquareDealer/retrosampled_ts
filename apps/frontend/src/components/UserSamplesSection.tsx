@@ -68,7 +68,7 @@ const UserSamplesSection: React.FC<UserSamplesSectionProps> = ({ userId }) => {
         ) : (
           <div className="samples-container">
             {samples.map((sample) => (
-              <SamplePiece sample={sample} key={sample.id}/>
+              <SamplePiece sample={sample} queue={samples} key={sample.id} />
             ))}
           </div>
         )}

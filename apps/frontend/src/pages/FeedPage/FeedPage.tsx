@@ -391,13 +391,14 @@ const FeedPage: React.FC<FeedPageProps> = ({ isAuthorized, onSignInClick }) => {
                   >
                     <SamplePiece
                       sample={sample}
+                      queue={samples}
                       remakesExpanded={isExpanded}
                       onRemakesToggle={remakes.length ? () => toggleRemakes(sample.id) : undefined}
                     />
                     {isExpanded && remakes.length > 0 && (
                       <div className="feed-remakes-list" aria-label={`Remakes for ${sample.title}`}>
                         {remakes.map((remake) => (
-                          <SamplePiece sample={remake} compact key={remake.id} />
+                          <SamplePiece sample={remake} queue={remakes} compact key={remake.id} />
                         ))}
                       </div>
                     )}

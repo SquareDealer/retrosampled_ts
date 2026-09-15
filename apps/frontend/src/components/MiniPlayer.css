@@ -1,73 +1,310 @@
-/* Прогресс-бар как белая шапка над мини-плеером */
-.mini-player__progress {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 56px; /* над мини-плеером */
-  height: 4px;
-  background: transparent;
-  z-index: 101;
-  box-shadow: 0 -1px 8px #00000020;
-}
-
-.mini-player__progress-fill {
-  background: #FFFFFF;
-  height: 100%;
-  width: 0%; /* будет меняться inline-стилем */
-}
-
-/* Закрепляем мини-плеер снизу */
+/* Mini player — fixed bottom bar: [cover + title/tags + key/bpm] [prev play next] [time mute volume] */
 .mini-player {
   position: fixed;
   left: 0;
   right: 0;
   bottom: 0;
   z-index: 100;
+  height: var(--mini-player-height);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-4);
+  padding-inline: var(--space-6);
   background: linear-gradient(
     to bottom,
     rgba(17, 17, 17, 0) 0%,
     rgba(17, 17, 17, 0.3) 70%,
     rgba(0, 0, 0, 1) 100%
   );
-  border-top: 1px solid #FFFFFF20;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 32px;
-  height: 56px;
-  font-family: "Roboto Mono", monospace;
-  color: #fff;
+  border-top: 1px solid var(--border);
+  font-family: var(--font-mono);
+  color: var(--text-primary);
   backdrop-filter: blur(3px);
   -webkit-backdrop-filter: blur(2px);
-  /* Для поддержки старых браузеров можно добавить fallback */
+}
+
+/* Seek line flush on the top edge */
+.mini-player__seek {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  cursor: pointer;
+  background: transparent;
+  transition: height 0.12s ease;
+}
+
+.mini-player__seek:hover,
+.mini-player__seek:focus-visible {
+  height: 5px;
+}
+
+.mini-player__seek-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--text-primary);
+}
+
+/* Left: cover, title, tags, meta */
+.mini-player__left {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.mini-player__cover {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+}
+
+.mini-player__cover-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.mini-player__cover-placeholder {
+  color: var(--text-muted);
+  font-size: var(--fs-base);
+  line-height: 1;
+}
+
+.mini-player__info {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
 }
 
 .mini-player__title {
-  font-size: 16px;
-  color: #FFFFFF;
-  font-weight: 500;
+  display: block;
+  min-width: 0;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  max-width: 320px;
+  color: var(--text-primary);
+  font-size: var(--fs-base);
+  font-weight: 500;
+  line-height: 1.2;
+  text-decoration: none;
+  transition: color 0.15s ease;
 }
 
-.mini-player button {
-  background: #fff;
-  color: #111;
+.mini-player__title:hover,
+.mini-player__title:focus-visible {
+  color: var(--accent);
+}
+
+.mini-player__tags {
+  display: flex;
+  gap: var(--space-1);
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.mini-player__meta {
+  flex: 0 0 auto;
+  display: flex;
+  gap: var(--space-4);
+  margin-left: var(--space-2);
+}
+
+.mini-player__meta-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 28px;
+}
+
+.mini-player__meta-value {
+  font-size: var(--fs-base);
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.mini-player__meta-label {
+  font-size: var(--fs-2xs);
+  line-height: 1;
+  color: var(--text-muted);
+}
+
+/* Center: transport */
+.mini-player__center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.mini-player__button,
+.mini-player__mute {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: transparent;
   border: none;
-  border-radius: 999px;
-  font-size: 14px;
-  font-family: inherit;
-  font-weight: 700;
-  padding: 8px 20px;
+  border-radius: 0;
+  color: var(--text-primary);
   cursor: pointer;
-  box-shadow: 0 2px 8px #00000020;
-  transition: background 0.2s, color 0.2s, opacity 0.2s;
+  transition: color 0.15s ease;
 }
 
-.mini-player button:hover {
-  background: #f4dd00;
-  color: #000;
-  opacity: 0.9;
+.mini-player__button:hover,
+.mini-player__button:focus-visible,
+.mini-player__mute:hover,
+.mini-player__mute:focus-visible {
+  color: var(--accent);
+}
+
+.mini-player__button:disabled {
+  color: var(--text-muted);
+  cursor: default;
+}
+
+/* Right: time, mute, volume */
+.mini-player__right {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.mini-player__time {
+  display: inline-flex;
+  gap: var(--space-1);
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  margin-right: var(--space-2);
+}
+
+.mini-player__volume {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 96px;
+  height: 2px;
+  margin: 0;
+  padding: 0;
+  background: var(--border-strong);
+  border-radius: 0;
+  cursor: pointer;
+}
+
+.mini-player__volume::-webkit-slider-runnable-track {
+  height: 2px;
+  background: transparent;
+}
+
+.mini-player__volume::-moz-range-track {
+  height: 2px;
+  background: transparent;
+}
+
+.mini-player__volume::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 10px;
+  height: 10px;
+  margin-top: -4px;
+  background: var(--text-primary);
+  border: none;
+  border-radius: 0;
+}
+
+.mini-player__volume::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  background: var(--text-primary);
+  border: none;
+  border-radius: 0;
+}
+
+.mini-player__volume:hover::-webkit-slider-thumb,
+.mini-player__volume:focus-visible::-webkit-slider-thumb {
+  background: var(--accent);
+}
+
+.mini-player__volume:hover::-moz-range-thumb,
+.mini-player__volume:focus-visible::-moz-range-thumb {
+  background: var(--accent);
+}
+
+/* Focus */
+.mini-player__seek:focus-visible,
+.mini-player__button:focus-visible,
+.mini-player__mute:focus-visible,
+.mini-player__volume:focus-visible,
+.mini-player__title:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .mini-player {
+    padding-inline: var(--space-4);
+  }
+
+  .mini-player__tags,
+  .mini-player__meta {
+    display: none;
+  }
+
+  .mini-player__volume {
+    width: 72px;
+  }
+}
+
+@media (max-width: 560px) {
+  .mini-player {
+    padding-inline: var(--space-3);
+    gap: var(--space-2);
+  }
+
+  .mini-player__cover {
+    width: 32px;
+    height: 32px;
+  }
+
+  .mini-player__title {
+    font-size: var(--fs-sm);
+  }
+
+  .mini-player__center {
+    gap: 0;
+  }
+
+  .mini-player__volume,
+  .mini-player__time-total,
+  .mini-player__time-separator {
+    display: none;
+  }
+
+  .mini-player__time {
+    margin-right: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mini-player,
+  .mini-player * {
+    transition: none;
+  }
 }

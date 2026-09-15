@@ -120,6 +120,7 @@ const toSample = (item: LibraryItem): Sample => ({
   type: item.type,
   price: item.accessType === "premium" ? "Premium" : "Free",
   jsonPeaksUrl: item.waveformUrl ?? undefined,
+  coverUrl: item.coverUrl ?? undefined,
 });
 
 const actionsByTab = (tab: LibraryTab, item: LibraryItem) => {
@@ -160,7 +161,7 @@ function LibrarySkeletons() {
   );
 }
 
-function LibraryCard({ item, tab }: { item: LibraryItem; tab: LibraryTab }) {
+function LibraryCard({ item, tab, queue }: { item: LibraryItem; tab: LibraryTab; queue: Sample[] }) {
   const { currentSample, state, play, seekTo } = useAudioContextManager();
   const sample = useMemo(() => toSample(item), [item]);
   const isCurrent = currentSample?.id === item.id;
@@ -168,14 +169,14 @@ function LibraryCard({ item, tab }: { item: LibraryItem; tab: LibraryTab }) {
   const playbackDisabled = item.status === "processing" || item.status === "failed" || !item.audioPreviewUrl;
 
   const handlePlay = () => {
-    if (!playbackDisabled) play(sample);
+    if (!playbackDisabled) play(sample, { queue });
   };
 
   const handleWaveformSeek = (event: React.MouseEvent<HTMLDivElement>) => {
     if (playbackDisabled) return;
     const rect = event.currentTarget.getBoundingClientRect();
     const progress = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
-    if (!isCurrent) play(sample, progress);
+    if (!isCurrent) play(sample, { startProgress: progress, queue });
     else if (state.isReady) seekTo(progress);
   };
 
@@ -249,6 +250,7 @@ function LibraryPage() {
   const [urlState, setUrlState] = useState(readUrlState);
   const [authorized, setAuthorized] = useState(() => isLibraryAuthorized());
   const [items, setItems] = useState<LibraryItem[]>([]);
+  const queue = useMemo(() => items.map(toSample), [items]);
   const [continueItems, setContinueItems] = useState<ContinueWorkingItem[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -461,7 +463,7 @@ function LibraryPage() {
             ) : (
               <>
                 <div className="library-list">
-                  {items.map((item) => <LibraryCard item={item} tab={urlState.tab} key={item.id} />)}
+                  {items.map((item) => <LibraryCard item={item} tab={urlState.tab} queue={queue} key={item.id} />)}
                 </div>
                 <div className="library-load-more" ref={loadMoreRef}>
                   {loadingMore ? "Loading more..." : nextCursor ? "Scroll for more" : "End of library"}

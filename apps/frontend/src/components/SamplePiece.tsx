@@ -11,6 +11,7 @@ interface SamplePieceProps {
   compact?: boolean;
   remakesExpanded?: boolean;
   onRemakesToggle?: () => void;
+  queue?: Sample[];
 }
 
 const getDeterministicLikesCount = (id: Sample["id"]): number => {
@@ -39,6 +40,7 @@ export const SamplePiece: React.FC<SamplePieceProps> = ({
   compact = false,
   remakesExpanded = false,
   onRemakesToggle,
+  queue,
 }) => {
   const { currentSample, state, play, seekTo } = useAudioContextManager();
   const [isLiked, setIsLiked] = React.useState(Boolean(sample.isLiked));
@@ -60,7 +62,7 @@ export const SamplePiece: React.FC<SamplePieceProps> = ({
     const p = x / rect.width;
     const clamped = Math.max(0, Math.min(1, p));
     if (!isCurrent) {
-      play(sample, clamped);
+      play(sample, { startProgress: clamped, queue });
     } else {
       if (state.isReady) {
         seekTo(clamped);
@@ -71,7 +73,7 @@ export const SamplePiece: React.FC<SamplePieceProps> = ({
   // Play/Pause button handler
   const handlePlayClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    play(sample);
+    play(sample, { queue });
   };
 
   const handleLikeClick = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -92,7 +94,7 @@ export const SamplePiece: React.FC<SamplePieceProps> = ({
   const handleContainerClick = () => {
     // Не запускаем, если уже играет этот семпл
     if (!isCurrent) {
-      play(sample);
+      play(sample, { queue });
     }
   };
 
