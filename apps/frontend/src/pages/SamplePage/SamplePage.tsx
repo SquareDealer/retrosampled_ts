@@ -1,13 +1,10 @@
 import React from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import {
-  fetchSampleById,
-  fetchSampleComments,
-  mockCreateCommentRequest,
-  mockToggleCreatorFollowRequest,
-  mockToggleLikeRequest,
-} from "../../api/samples";
+import { fetchSampleById, mockToggleLikeRequest } from "../../api/samples";
+import { createComment, fetchComments } from "../../api/comments";
+import { setFollowing } from "../../api/follows";
+import { useAuth } from "../../auth/useAuth";
 import { CommentsSection } from "../../components/sample-page/CommentsSection";
 import { SampleActionsBar } from "../../components/sample-page/SampleActionsBar";
 import { SampleCoverCard } from "../../components/sample-page/SampleCoverCard";
@@ -17,7 +14,7 @@ import { SampleMeta } from "../../components/sample-page/SampleMeta";
 import { SamplePlayer } from "../../components/sample-page/SamplePlayer";
 import { RelatedSamplesSection } from "../../components/sample-page/RelatedSamplesSection";
 import { SampleTags } from "../../components/sample-page/SampleTags";
-import { SampleComment, SampleDetail } from "../../types/sampleDetail";
+import type { SampleComment, SampleDetail } from "@retrosampled/shared";
 import "./SamplePage.css";
 
 type PageStatus = "loading" | "loaded" | "error" | "empty";
@@ -28,12 +25,6 @@ type NoticeState = {
 };
 
 type CommentsStatus = "loading" | "loaded" | "error";
-
-const LOCAL_COMMENT_USER = {
-  id: "u2",
-  username: "squaredealer",
-  avatarUrl: "/img/avatar.jpg",
-};
 
 const NOTICE_DURATION_MS = 1800;
 
@@ -94,6 +85,7 @@ const SamplePageSkeleton: React.FC = () => {
 const SamplePage: React.FC = () => {
   const { sampleId = "" } = useParams();
   const navigate = useNavigate();
+  const { user: sessionUser, openAuthModal } = useAuth();
 
   const [status, setStatus] = useState<PageStatus>("loading");
   const [sample, setSample] = useState<SampleDetail | null>(null);
@@ -196,7 +188,7 @@ const SamplePage: React.FC = () => {
       setCommentsErrorText(null);
 
       try {
-        const response = await fetchSampleComments(sampleId);
+        const response = await fetchComments(sampleId);
 
         if (cancelled) {
           return;
@@ -374,6 +366,16 @@ const SamplePage: React.FC = () => {
       return;
     }
 
+    if (!sessionUser) {
+      openAuthModal("login");
+      return;
+    }
+
+    if (sessionUser.id === creatorId) {
+      showNotice("error", "You cannot follow yourself.");
+      return;
+    }
+
     const previous =
       creatorFollowById[creatorId] ??
       sample?.creators.find((creator) => creator.id === creatorId)?.isFollowing ??
@@ -391,7 +393,7 @@ const SamplePage: React.FC = () => {
     }));
 
     try {
-      await mockToggleCreatorFollowRequest(creatorId, next);
+      await setFollowing(creatorId, next);
     } catch {
       setCreatorFollowById((current) => ({
         ...current,
@@ -410,9 +412,9 @@ const SamplePage: React.FC = () => {
     return {
       id: `temp-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       user: {
-        id: LOCAL_COMMENT_USER.id,
-        username: LOCAL_COMMENT_USER.username,
-        avatarUrl: LOCAL_COMMENT_USER.avatarUrl,
+        id: sessionUser?.id ?? "me",
+        username: sessionUser?.username ?? "you",
+        avatarUrl: sessionUser?.avatarUrl ?? undefined,
       },
       text,
       createdAt: new Date().toISOString(),
@@ -427,12 +429,17 @@ const SamplePage: React.FC = () => {
       return;
     }
 
+    if (!sessionUser) {
+      openAuthModal("login");
+      return;
+    }
+
     const temporaryComment = createTemporaryComment(text);
 
     setComments((current) => [temporaryComment, ...current]);
 
     try {
-      const created = await mockCreateCommentRequest(sample.id, text);
+      const created = await createComment(sample.id, text);
 
       setComments((current) => {
         return current.map((comment) => {
@@ -459,6 +466,11 @@ const SamplePage: React.FC = () => {
       return;
     }
 
+    if (!sessionUser) {
+      openAuthModal("login");
+      return;
+    }
+
     const temporaryReply = createTemporaryComment(text, parentId);
 
     setComments((current) => {
@@ -475,7 +487,7 @@ const SamplePage: React.FC = () => {
     });
 
     try {
-      const createdReply = await mockCreateCommentRequest(sample.id, text, parentId);
+      const createdReply = await createComment(sample.id, text, parentId);
 
       setComments((current) => {
         return current.map((comment) => {

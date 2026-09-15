@@ -2,7 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { WaveformFromJsonForSample } from "./waveform/WaveformFromJsonForSample";
 import { useAudioContextManager } from "./AudioContextManager";
-import { Sample } from "../types/Sample";
+import { Sample } from "@retrosampled/shared";
 import "./SampleRow.css";
 
 interface SamplePieceProps {

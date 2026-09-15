@@ -1,4 +1,4 @@
-import { Sample } from "../types/Sample";
+import { Sample } from "@retrosampled/shared";
 
 export const mockSamples: Record<string, Sample[]> = {
   popular: [

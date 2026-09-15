@@ -1,5 +1,5 @@
 import { mockSamples } from "../mocks/mockSamples";
-import { Sample } from "../types/Sample";
+import { Sample } from "@retrosampled/shared";
 import {
   CREATOR_ROLE_PRIORITY,
   SampleComment,
@@ -11,7 +11,7 @@ import {
   RelatedSamplesTree,
   SampleDetail,
   SampleShort,
-} from "../types/sampleDetail";
+} from "@retrosampled/shared";
 
 type SampleBucketKey = keyof typeof mockSamples;
 
