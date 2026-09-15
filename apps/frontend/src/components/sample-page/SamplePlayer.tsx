@@ -1,10 +1,11 @@
 import React from "react";
-import { KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
+import { KeyboardEvent, useMemo } from "react";
 import { Sample } from "../../types/Sample";
 import { useAudioContextManager } from "../AudioContextManager";
 import { WaveformFromJsonForSample } from "../waveform/WaveformFromJsonForSample";
 import { WaveformBars } from "../waveform/WaveformBars";
 import { formatTime } from "../../utils/formatTime";
+import { useElementWidth } from "../../hooks/useElementWidth";
 
 export type SamplePlayerProps = {
   sampleId: string;
@@ -26,8 +27,7 @@ export const SamplePlayer: React.FC<SamplePlayerProps> = ({
   isPlayable = true,
 }) => {
   const { currentSample, state, play, seekTo, togglePlay } = useAudioContextManager();
-  const [waveformWidth, setWaveformWidth] = useState(560);
-  const waveformRef = useRef<HTMLDivElement | null>(null);
+  const [waveformRef, waveformWidth] = useElementWidth<HTMLDivElement>(48, 560);
 
   const sampleForPlayer: Sample = useMemo(
     () => ({
@@ -50,34 +50,6 @@ export const SamplePlayer: React.FC<SamplePlayerProps> = ({
   const progress = isCurrent ? state.progress : 0;
   const isPlaying = isCurrent && state.isPlaying;
   const canPlay = isPlayable && Boolean(audioUrl);
-
-  useEffect(() => {
-    const node = waveformRef.current;
-    if (!node) {
-      return;
-    }
-
-    const updateWidth = () => {
-      const nextWidth = Math.max(48, Math.floor(node.clientWidth));
-      setWaveformWidth(nextWidth);
-    };
-
-    updateWidth();
-
-    if (typeof ResizeObserver === "undefined") {
-      return;
-    }
-
-    const observer = new ResizeObserver(() => {
-      updateWidth();
-    });
-
-    observer.observe(node);
-
-    return () => {
-      observer.disconnect();
-    };
-  }, []);
 
   const handlePlayPause = () => {
     if (!canPlay) {

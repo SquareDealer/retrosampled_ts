@@ -208,7 +208,7 @@
   border-bottom: 1px solid #191919;
 }
 
-.feed-remakes-list .sample-row:last-child {
+.feed-remakes-list .sample-row-shell:last-child .sample-row {
   border-bottom: 0;
 }
 

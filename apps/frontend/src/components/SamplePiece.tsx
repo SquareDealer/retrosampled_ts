@@ -1,18 +1,45 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { WaveformFromJsonForSample } from "./waveform/WaveformFromJsonForSample";
 import { useAudioContextManager } from "./AudioContextManager";
 import { Sample } from "../types/Sample";
 import { HeartIcon, PauseIcon, PlayIcon } from "./icons";
+import { useElementWidth } from "../hooks/useElementWidth";
+import { formatCompactNumber } from "../utils/formatCompactNumber";
 import "./SampleRow.css";
+
+export type SamplePieceVariant = "default" | "compact" | "related";
+export type SamplePieceRowAction = "play" | "open";
 
 interface SamplePieceProps {
   sample: Sample;
+  queue?: Sample[];
+  /** Visual variant; adds `sample-row--compact` / `sample-row--related`. */
+  variant?: SamplePieceVariant;
+  /** Legacy alias for `variant="compact"`. */
   compact?: boolean;
   remakesExpanded?: boolean;
   onRemakesToggle?: () => void;
-  queue?: Sample[];
+  /** "play" (default): clicking the row plays it. "open": row is a link to the sample page. */
+  rowAction?: SamplePieceRowAction;
+  /** When set, only the first N tags are shown, followed by a "+N" tag. */
+  maxTags?: number;
+  /** Controlled like state. When `onLikeToggle` is absent, internal optimistic state is used. */
+  isLiked?: boolean;
+  likesCount?: number;
+  onLikeToggle?: (id: string) => void;
+  showLikes?: boolean;
+  /** Defaults: 50 (default), 40 (compact), 48 (related). */
+  waveformHeight?: number;
 }
+
+const DEFAULT_WAVEFORM_HEIGHT: Record<SamplePieceVariant, number> = {
+  default: 50,
+  compact: 40,
+  related: 48,
+};
+
+const SEEK_STEP = 0.04;
 
 const getDeterministicLikesCount = (id: Sample["id"]): number => {
   const source = String(id);
@@ -35,52 +62,121 @@ const getInitialLikesCount = (sample: Sample): number => {
   return getDeterministicLikesCount(sample.id);
 };
 
+const clamp01 = (value: number) => Math.max(0, Math.min(1, value));
+
 export const SamplePiece: React.FC<SamplePieceProps> = ({
   sample,
+  queue,
+  variant: variantProp,
   compact = false,
   remakesExpanded = false,
   onRemakesToggle,
-  queue,
+  rowAction = "play",
+  maxTags,
+  isLiked: isLikedProp,
+  likesCount: likesCountProp,
+  onLikeToggle,
+  showLikes = true,
+  waveformHeight: waveformHeightProp,
 }) => {
-  const { currentSample, state, play, seekTo } = useAudioContextManager();
-  const [isLiked, setIsLiked] = React.useState(Boolean(sample.isLiked));
-  const [likesCount, setLikesCount] = React.useState<number>(() => getInitialLikesCount(sample));
+  const navigate = useNavigate();
+  const { currentSample, state, play, seekTo, togglePlay } = useAudioContextManager();
+  const [waveformRef, waveformWidth] = useElementWidth<HTMLDivElement>(48, 200);
 
-  const isCurrent = currentSample?.id === sample.id;
+  const variant: SamplePieceVariant = variantProp ?? (compact ? "compact" : "default");
+  const isCompact = variant === "compact";
+  const waveformHeight = waveformHeightProp ?? DEFAULT_WAVEFORM_HEIGHT[variant];
+
+  // Like state: controlled when `onLikeToggle` is provided, otherwise internal optimistic.
+  const isControlledLike = typeof onLikeToggle === "function";
+  const [internalLiked, setInternalLiked] = React.useState(Boolean(sample.isLiked));
+  const [internalLikesCount, setInternalLikesCount] = React.useState<number>(() =>
+    getInitialLikesCount(sample)
+  );
+  const isLiked = isControlledLike ? Boolean(isLikedProp) : internalLiked;
+  const likesCount = isControlledLike
+    ? likesCountProp ?? getInitialLikesCount(sample)
+    : internalLikesCount;
+
+  const isCurrent = Boolean(currentSample) && String(currentSample?.id) === String(sample.id);
   const isPlaying = isCurrent && state.isPlaying;
+  const progress = isCurrent ? state.progress : 0;
   const authorName = sample.author || "Unknown Artist";
   const remakesCount = sample.remakesCount ?? sample.remakes?.length ?? 0;
   const hasRemakes = remakesCount > 0 && Boolean(onRemakesToggle);
-  const waveformWidth = compact ? 160 : 200;
-  const waveformHeight = compact ? 40 : 50;
+
+  const visibleTags = typeof maxTags === "number" ? sample.tags.slice(0, maxTags) : sample.tags;
+  const hiddenTagsCount = sample.tags.length - visibleTags.length;
+
+  const openSample = () => {
+    navigate(`/sample/${sample.id}`);
+  };
+
+  /** Play/pause toggle used by the play button, waveform keyboard and the row (play action). */
+  const togglePlayback = () => {
+    if (isCurrent && state.isReady) {
+      togglePlay();
+      return;
+    }
+
+    play(sample, { queue });
+  };
+
+  const seekToProgress = (nextProgress: number) => {
+    const clamped = clamp01(nextProgress);
+
+    if (!isCurrent || !state.isReady) {
+      play(sample, { startProgress: clamped, queue });
+      return;
+    }
+
+    seekTo(clamped);
+  };
 
   // Click on waveform (seek / play-with-progress)
-  const handleWaveformSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleWaveformClick = (e: React.MouseEvent<HTMLDivElement>) => {
     e.stopPropagation();
     const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const p = x / rect.width;
-    const clamped = Math.max(0, Math.min(1, p));
-    if (!isCurrent) {
-      play(sample, { startProgress: clamped, queue });
-    } else {
-      if (state.isReady) {
-        seekTo(clamped);
-      }
+    if (rect.width <= 0) {
+      return;
+    }
+
+    seekToProgress((e.clientX - rect.left) / rect.width);
+  };
+
+  const handleWaveformKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === " " || e.key === "Enter") {
+      e.preventDefault();
+      e.stopPropagation();
+      togglePlayback();
+      return;
+    }
+
+    if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+      e.preventDefault();
+      e.stopPropagation();
+      const delta = e.key === "ArrowRight" ? SEEK_STEP : -SEEK_STEP;
+      seekToProgress(progress + delta);
     }
   };
 
-  // Play/Pause button handler
-  const handlePlayClick = (e: React.MouseEvent) => {
+  const handlePlayClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
-    play(sample, { queue });
+    togglePlayback();
   };
 
   const handleLikeClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
 
-    setIsLiked((prevLiked) => {
-      setLikesCount((prevCount) => (prevLiked ? Math.max(0, prevCount - 1) : prevCount + 1));
+    if (isControlledLike) {
+      onLikeToggle(String(sample.id));
+      return;
+    }
+
+    setInternalLiked((prevLiked) => {
+      setInternalLikesCount((prevCount) =>
+        prevLiked ? Math.max(0, prevCount - 1) : prevCount + 1
+      );
       return !prevLiked;
     });
   };
@@ -90,128 +186,174 @@ export const SamplePiece: React.FC<SamplePieceProps> = ({
     onRemakesToggle?.();
   };
 
-  // Click on entire container to play sample
-  const handleContainerClick = () => {
-    // Не запускаем, если уже играет этот семпл
+  const handleRowClick = () => {
+    if (rowAction === "open") {
+      openSample();
+      return;
+    }
+
+    // Do not restart a sample that is already current
     if (!isCurrent) {
       play(sample, { queue });
     }
   };
 
+  const handleRowKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === "Enter" && e.target === e.currentTarget) {
+      e.preventDefault();
+      openSample();
+    }
+  };
+
+  const stopPropagation = (e: React.SyntheticEvent) => e.stopPropagation();
+
+  const rowClassName = `sample-row${
+    variant !== "default" ? ` sample-row--${variant}` : ""
+  }`;
+
+  const rowLinkProps =
+    rowAction === "open"
+      ? {
+          role: "link",
+          tabIndex: 0,
+          "aria-label": `Open sample ${sample.title}`,
+          onKeyDown: handleRowKeyDown,
+        }
+      : {};
+
   return (
-    <div
-      className={`sample-row${compact ? " sample-row--compact" : ""}`}
-      onClick={handleContainerClick}
-      style={{ cursor: "pointer" }}
-    >
-      {/* LEFT: Avatar, Author, Title, Tags */}
-      <div className="sample-row__left">
-        {!compact && (
-          <div className="sample-row__remakes-slot">
-            {hasRemakes && (
-              <button
-                className={`sample-row__remakes-toggle${
-                  remakesExpanded ? " sample-row__remakes-toggle--expanded" : ""
+    <div className={`sample-row-shell sample-row-shell--${variant}`}>
+      <div className={rowClassName} onClick={handleRowClick} {...rowLinkProps}>
+        {/* LEFT: Avatar, Author, Title, Tags */}
+        <div className="sample-row__left">
+          {variant === "default" && (
+            <div className="sample-row__remakes-slot">
+              {hasRemakes && (
+                <button
+                  className={`sample-row__remakes-toggle${
+                    remakesExpanded ? " sample-row__remakes-toggle--expanded" : ""
+                  }`}
+                  type="button"
+                  aria-expanded={remakesExpanded}
+                  aria-label={remakesExpanded ? "Hide remakes" : `Show ${remakesCount} remakes`}
+                  onClick={handleRemakesToggle}
+                >
+                  &gt;
+                </button>
+              )}
+            </div>
+          )}
+
+          <img
+            className="sample-row__avatar"
+            src="/img/avatar.jpg" // Placeholder avatar
+            alt={authorName}
+          />
+
+          <div className="sample-row__info">
+            <Link
+              to={`/user/${sample.authorId}`}
+              className="sample-row__author"
+              onClick={stopPropagation}
+            >
+              {authorName}
+            </Link>
+            <Link
+              to={`/sample/${sample.id}`}
+              className="sample-row__title sample-row__title-link"
+              onClick={stopPropagation}
+            >
+              {sample.title}
+            </Link>
+
+            <div className="sample-row__tags">
+              {visibleTags.map((tag, index) => (
+                <span className="tag" key={`${tag}-${index}`}>
+                  {tag}
+                </span>
+              ))}
+              {hiddenTagsCount > 0 && (
+                <span className="tag" aria-label={`${hiddenTagsCount} more tags`}>
+                  +{hiddenTagsCount}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* CENTER: Waveform + Metadata */}
+        <div className="sample-row__center">
+          <div className="sample-row__media">
+            <button
+              className="sample-row__play"
+              type="button"
+              aria-label={isPlaying ? "Pause sample" : "Play sample"}
+              onClick={handlePlayClick}
+            >
+              {isPlaying ? <PauseIcon size={18} /> : <PlayIcon size={18} />}
+            </button>
+
+            <div
+              className="sample-row__waveform"
+              ref={waveformRef}
+              onClick={handleWaveformClick}
+              onKeyDown={handleWaveformKeyDown}
+              role="slider"
+              tabIndex={0}
+              aria-label={`Seek waveform for ${sample.title}`}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Math.round(progress * 100)}
+            >
+              {sample.jsonPeaksUrl ? (
+                <WaveformFromJsonForSample
+                  sample={sample}
+                  peaksUrl={sample.jsonPeaksUrl}
+                  width={waveformWidth}
+                  height={waveformHeight}
+                  barWidth={isCompact ? 2 : 3}
+                  gap={2}
+                  activeColor="#ffffff"
+                  inactiveColor="rgba(255,255,255,0.3)"
+                />
+              ) : (
+                <div className="sample-row__wave-placeholder" />
+              )}
+            </div>
+          </div>
+
+          <div className="sample-row__metadata">
+            <div className="sample-row__time">{sample.time}</div>
+            <div className="sample-row__key">{sample.key}</div>
+            <div className="sample-row__bpm">{sample.bpm}</div>
+          </div>
+        </div>
+
+        {/* RIGHT: Like */}
+        {showLikes && (
+          <div className="sample-row__right">
+            <div className="sample-row__actions">
+              <span
+                className={`sample-row__likes-count${
+                  isLiked ? " sample-row__likes-count--active" : ""
                 }`}
-                type="button"
-                aria-expanded={remakesExpanded}
-                aria-label={remakesExpanded ? "Hide remakes" : `Show ${remakesCount} remakes`}
-                onClick={handleRemakesToggle}
+                aria-label={`Likes ${likesCount}`}
               >
-                &gt;
+                {formatCompactNumber(likesCount)}
+              </span>
+
+              <button
+                className={`sample-row__like${isLiked ? " sample-row__like--active" : ""}`}
+                type="button"
+                aria-label={isLiked ? "Unlike sample" : "Like sample"}
+                aria-pressed={isLiked}
+                onClick={handleLikeClick}
+              >
+                <HeartIcon filled={isLiked} size={16} />
               </button>
-            )}
+            </div>
           </div>
         )}
-
-        <img
-          className="sample-row__avatar"
-          src="/img/avatar.jpg" // Placeholder avatar
-          alt={authorName}
-        />
-
-        <div className="sample-row__info">
-          <a href={`/user/${sample.authorId}`} className="sample-row__author">
-            {authorName}
-          </a>
-          <Link
-            to={`/sample/${sample.id}`}
-            className="sample-row__title sample-row__title-link"
-            onClick={(event) => event.stopPropagation()}
-          >
-            {sample.title}
-          </Link>
-
-          <div className="sample-row__tags">
-            {sample.tags.map((tag, index) => (
-              <span className="tag" key={index}>
-                {tag}
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* CENTER: Waveform + Metadata */}
-      <div className="sample-row__center">
-        <div className="sample-row__media">
-          {/* Play Button */}
-          <button
-            className="sample-row__play"
-            type="button"
-            aria-label={isPlaying ? "Pause" : "Play"}
-            onClick={handlePlayClick}
-          >
-            {isPlaying ? <PauseIcon size={18} /> : <PlayIcon size={18} />}
-          </button>
-
-          {/* Waveform */}
-          <div
-            className="sample-row__waveform"
-            onClick={handleWaveformSeek}
-            style={{ cursor: "pointer" }}
-          >
-            <WaveformFromJsonForSample
-              sample={sample}
-              peaksUrl={sample.jsonPeaksUrl ?? ""}
-              width={waveformWidth}
-              height={waveformHeight}
-              barWidth={compact ? 2 : 3}
-              gap={2}
-              activeColor="#ffffff"
-              inactiveColor="rgba(255,255,255,0.3)"
-            />
-          </div>
-        </div>
-
-        <div className="sample-row__metadata">
-          <div className="sample-row__time">{sample.time}</div>
-          <div className="sample-row__key">{sample.key}</div>
-          <div className="sample-row__bpm">{sample.bpm}</div>
-        </div>
-      </div>
-
-      {/* RIGHT: Like */}
-      <div className="sample-row__right">
-        <div className="sample-row__actions">
-          <span
-            className={`sample-row__likes-count${
-              isLiked ? " sample-row__likes-count--active" : ""
-            }`}
-            aria-label={`Likes ${likesCount}`}
-          >
-            {likesCount}
-          </span>
-
-          <button
-            className={`sample-row__like${isLiked ? " sample-row__like--active" : ""}`}
-            type="button"
-            aria-label={isLiked ? "Unlike" : "Like"}
-            onClick={handleLikeClick}
-          >
-            <HeartIcon filled={isLiked} size={16} />
-          </button>
-        </div>
       </div>
     </div>
   );

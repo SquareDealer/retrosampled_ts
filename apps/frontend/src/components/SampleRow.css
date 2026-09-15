@@ -1,34 +1,58 @@
 /* ─────────────────────────────────────────────────────────────
    SampleRow — Component Styles
    Design system: black/dark bg, Roboto Mono, sharp corners
+
+   Layout is container-adaptive: `.sample-row-shell` is an
+   inline-size container, and the row compresses in three steps
+   (tags hidden → key/bpm hidden + wrap) based on the shell width,
+   so every list gets the same behaviour regardless of viewport.
    ───────────────────────────────────────────────────────────── */
+
+.sample-row-shell {
+  container: sample-row / inline-size;
+  min-width: 0;
+}
+
+.sample-row-shell--compact {
+  margin-left: clamp(18px, 4vw, 54px);
+}
 
 .sample-row {
   display: flex;
   align-items: center;
-  gap: clamp(8px, 1.5vw, 20px);
+  gap: clamp(8px, 2cqw, 20px);
   padding-block: clamp(8px, 1vw, 12px);
-  padding-inline: clamp(12px, 3vw, 28px);
-  border-bottom: 1px solid #191919;
-  font-size: 13px;
+  padding-inline: clamp(12px, 3cqw, 28px);
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: var(--fs-md);
   min-width: 0;
+  cursor: pointer;
   transition: background-color 0.15s ease;
 }
 
 .sample-row:hover {
-  background: #0a0a0a;
+  background: var(--bg-2);
+}
+
+.sample-row[role="link"]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
 }
 
 .sample-row--compact {
-  margin-left: clamp(18px, 4vw, 54px);
   padding-block: clamp(6px, 0.8vw, 10px);
-  padding-inline: clamp(10px, 2vw, 20px);
-  background: #050505;
-  font-size: 12px;
+  padding-inline: clamp(10px, 2cqw, 20px);
+  background: var(--bg-1);
+  font-size: var(--fs-sm);
 }
 
 .sample-row--compact:hover {
   background: #0d0d0d;
+}
+
+.sample-row--related {
+  padding-block: 10px;
+  padding-inline: clamp(8px, 2cqw, 14px);
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -39,9 +63,8 @@
   display: flex;
   align-items: center;
   gap: clamp(6px, 1vw, 12px);
-  flex: 0 1 clamp(180px, 28vw, 300px);
-  max-width: clamp(180px, 30vw, 300px);
-  min-width: clamp(128px, 20vw, 220px);
+  flex: 0 1 clamp(180px, 30cqw, 300px);
+  min-width: 0;
   overflow: hidden;
 }
 
@@ -66,13 +89,13 @@
 .sample-row__info {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
   min-width: 0;
 }
 
 .sample-row__author {
-  font-size: 12px;
-  color: #ffffff60;
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
   text-decoration: none;
   transition: color 0.2s;
   white-space: nowrap;
@@ -81,11 +104,17 @@
 }
 
 .sample-row__author:hover {
-  color: #fff;
+  color: var(--text-primary);
+}
+
+.sample-row__author:focus-visible,
+.sample-row__title-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .sample-row__title {
-  font-size: 14px;
+  font-size: var(--fs-base);
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -94,7 +123,7 @@
 }
 
 .sample-row__title-link {
-  color: #fff;
+  color: var(--text-primary);
   text-decoration: none;
 }
 
@@ -111,9 +140,9 @@
 
 .sample-row__tags .tag {
   padding: 1px clamp(3px, 0.6vw, 5px);
-  color: #ffffff60;
-  font-size: 10px;
-  border: 1px solid #ffffff20;
+  color: var(--text-muted);
+  font-size: var(--fs-2xs);
+  border: 1px solid var(--border);
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -132,7 +161,9 @@
   display: flex;
   align-items: center;
   gap: clamp(8px, 1.4vw, 16px);
-  flex: 0 0 auto;
+  /* Content-sized so time/key/bpm stay next to the waveform; the row's
+     free space collects between the metadata and the like button. */
+  flex: 0 1 auto;
   min-width: 0;
 }
 
@@ -140,20 +171,17 @@
   border: none;
   background: none;
   cursor: pointer;
-  padding: 4px;
+  padding: var(--space-1);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  color: var(--text-primary);
   transition: opacity 0.15s ease;
 }
 
 .sample-row__play:hover {
   opacity: 0.65;
-}
-
-.sample-row__play {
-  color: var(--text-primary);
 }
 
 .sample-row__play:focus-visible {
@@ -167,11 +195,30 @@
 }
 
 .sample-row__waveform {
-  flex: 0 0 200px;
-  width: 200px;
-  min-width: 200px;
-  max-width: 200px;
+  flex: 0 1 220px;
+  min-width: 96px;
+  max-width: 260px;
   height: 50px;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  /* The bars inside get their width from measuring this box; keep the box's
+     own size independent of its content so the two never feed back. */
+  contain: inline-size;
+  cursor: pointer;
+}
+
+.sample-row__waveform:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.sample-row--compact .sample-row__waveform {
+  height: 40px;
+}
+
+.sample-row--related .sample-row__waveform {
+  height: 48px;
 }
 
 .sample-row__wave-image {
@@ -183,11 +230,12 @@
 }
 
 .sample-row__wave-placeholder {
+  width: 100%;
   height: 24px;
   background: repeating-linear-gradient(
     to right,
-    #ffffff20 0,
-    #ffffff20 2px,
+    var(--border) 0,
+    var(--border) 2px,
     transparent 2px,
     transparent 4px
   );
@@ -198,7 +246,7 @@
 .sample-row__metadata {
   display: flex;
   align-items: center;
-  flex: 0 1 auto;
+  flex: 0 0 auto;
   min-width: 0;
   flex-wrap: nowrap;
   column-gap: clamp(10px, 2vw, 24px);
@@ -206,31 +254,21 @@
 
 .sample-row__time,
 .sample-row__key,
-.sample-row__bpm,
-.sample-row__type {
+.sample-row__bpm {
   white-space: nowrap;
-  color: #ffffff80;
+  min-width: 3ch;
+  width: auto;
+  color: var(--text-secondary);
 }
 
 .sample-row__time {
-  width: clamp(32px, 4vw, 40px);
   text-align: right;
-  color: #ffffff;
+  color: var(--text-primary);
 }
 
-.sample-row__key {
-  width: clamp(32px, 4vw, 40px);
-  text-align: center;
-}
-
+.sample-row__key,
 .sample-row__bpm {
-  width: clamp(32px, 4vw, 40px);
   text-align: center;
-}
-
-.sample-row__type {
-  width: 80px;
-  text-align: right;
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -247,14 +285,14 @@
 .sample-row__actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .sample-row__likes-count {
   min-width: 3ch;
   text-align: right;
-  color: #ffffff80;
-  font-size: 12px;
+  color: var(--text-secondary);
+  font-size: var(--fs-sm);
   line-height: 1;
   transition: color 0.2s;
 }
@@ -288,12 +326,9 @@
   outline-offset: 2px;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .sample-row__play,
-  .sample-row__like {
-    transition: none;
-  }
-}
+/* ─────────────────────────────────────────────────────────────
+   Remakes toggle
+   ───────────────────────────────────────────────────────────── */
 
 .sample-row__remakes-toggle {
   width: 24px;
@@ -301,25 +336,34 @@
   border: 1px solid #ffffff30;
   border-radius: 0;
   background: transparent;
-  color: #ffffff80;
+  color: var(--text-secondary);
   cursor: pointer;
   padding: 0;
-  font-size: 12px;
+  font-size: var(--fs-sm);
   line-height: 1;
   transition: transform 0.12s, border-color 0.12s, color 0.12s;
 }
 
 .sample-row__remakes-toggle:hover,
 .sample-row__remakes-toggle:focus-visible {
-  border-color: #f4dd00;
-  color: #f4dd00;
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.sample-row__remakes-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .sample-row__remakes-toggle--expanded {
   transform: rotate(90deg);
-  border-color: #f4dd00;
-  color: #f4dd00;
+  border-color: var(--accent);
+  color: var(--accent);
 }
+
+/* ─────────────────────────────────────────────────────────────
+   Variants
+   ───────────────────────────────────────────────────────────── */
 
 .sample-row--compact .sample-row__avatar {
   width: 36px;
@@ -327,20 +371,12 @@
 }
 
 .sample-row--compact .sample-row__title {
-  font-size: 12px;
+  font-size: var(--fs-sm);
 }
 
 .sample-row--compact .sample-row__author,
 .sample-row--compact .sample-row__likes-count {
-  font-size: 10px;
-}
-
-.sample-row--compact .sample-row__waveform {
-  flex-basis: 160px;
-  width: 160px;
-  min-width: 160px;
-  max-width: 160px;
-  height: 40px;
+  font-size: var(--fs-2xs);
 }
 
 .sample-row--compact .sample-row__play > svg {
@@ -348,87 +384,110 @@
   height: 16px;
 }
 
+.sample-row--related .sample-row__avatar {
+  width: 42px;
+  height: 42px;
+}
+
 /* ─────────────────────────────────────────────────────────────
-   Responsive Breakpoints
+   Container queries (measured on .sample-row-shell)
    ───────────────────────────────────────────────────────────── */
 
-@media (max-width: 1040px) {
+/* Medium: drop tags, tighten metadata */
+@container sample-row (max-width: 679px) {
+  .sample-row {
+    gap: clamp(8px, 2cqw, 14px);
+  }
+
+  .sample-row__tags {
+    display: none;
+  }
+
   .sample-row__left {
-    flex-basis: clamp(160px, 24vw, 220px);
-    max-width: clamp(160px, 26vw, 220px);
-    min-width: clamp(120px, 18vw, 170px);
+    flex-basis: clamp(140px, 34cqw, 220px);
+  }
+
+  .sample-row__center {
+    gap: clamp(8px, 2.5cqw, 20px);
+  }
+
+  .sample-row__media {
+    gap: var(--space-2);
+  }
+
+  .sample-row__waveform {
+    flex-basis: 120px;
+    min-width: 64px;
   }
 
   .sample-row__metadata {
-    column-gap: clamp(8px, 1.5vw, 16px);
+    column-gap: var(--space-2);
+  }
+
+  .sample-row__key,
+  .sample-row__bpm {
+    min-width: 2ch;
+  }
+
+  .sample-row__right {
+    margin-left: var(--space-2);
   }
 }
 
-@media (max-width: 860px) {
+/* Narrow: info on its own line, waveform + time + like below */
+@container sample-row (max-width: 459px) {
   .sample-row {
     flex-wrap: wrap;
-    align-items: flex-start;
-    row-gap: clamp(8px, 2vw, 14px);
+    row-gap: var(--space-2);
   }
 
   .sample-row__left {
     flex: 1 1 100%;
     max-width: none;
-    min-width: 0;
   }
 
   .sample-row__center {
-    flex: 1 1 100%;
-    width: 100%;
+    flex: 1 1 auto;
     order: 2;
   }
 
   .sample-row__right {
-    width: 100%;
     order: 3;
-    margin-left: 0;
+    margin-left: auto;
   }
 
-  .sample-row__actions {
-    justify-content: flex-start;
+  .sample-row__key,
+  .sample-row__bpm {
+    display: none;
   }
 
-  .sample-row--compact {
-    margin-left: clamp(12px, 4vw, 28px);
+  .sample-row__avatar {
+    width: 36px;
+    height: 36px;
   }
-}
 
-@media (max-width: 560px) {
-  .sample-row {
-    padding-inline: clamp(10px, 4vw, 16px);
+  /* On its own line the media slot fills the row and the waveform grows. */
+  .sample-row__media {
+    flex: 1 1 auto;
   }
 
   .sample-row__waveform {
-    flex-basis: clamp(120px, 45vw, 200px);
-    width: auto;
-    min-width: clamp(100px, 40vw, 200px);
-    max-width: 200px;
+    flex: 1 1 120px;
+    max-width: none;
   }
+}
 
-  .sample-row__media {
-    gap: clamp(6px, 2vw, 10px);
-  }
+/* ─────────────────────────────────────────────────────────────
+   Motion
+   ───────────────────────────────────────────────────────────── */
 
-  .sample-row__metadata {
-    column-gap: clamp(8px, 3vw, 12px);
-  }
-
-  .sample-row__time,
-  .sample-row__key,
-  .sample-row__bpm {
-    width: auto;
-    min-width: 0;
-  }
-
-  .sample-row--compact .sample-row__waveform {
-    flex-basis: clamp(110px, 40vw, 160px);
-    width: auto;
-    min-width: clamp(100px, 36vw, 160px);
-    max-width: 160px;
+@media (prefers-reduced-motion: reduce) {
+  .sample-row,
+  .sample-row__author,
+  .sample-row__play,
+  .sample-row__like,
+  .sample-row__likes-count,
+  .sample-row__remakes-toggle {
+    transition: none;
   }
 }

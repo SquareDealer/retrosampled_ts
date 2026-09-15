@@ -42,7 +42,8 @@ export const WaveformFromJsonForSample: React.FC<
 
   const { currentSample, state } = useAudioContextManager();
 
-  const isCurrent = currentSample?.id === sample.id;
+  const isCurrent =
+    Boolean(currentSample) && String(currentSample?.id) === String(sample.id);
   const playbackProgress = isCurrent ? state.progress : 0;
 
   useEffect(() => {
