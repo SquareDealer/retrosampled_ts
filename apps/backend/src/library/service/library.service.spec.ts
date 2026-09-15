@@ -119,6 +119,8 @@ function createPrismaMock(samples: LibrarySampleRow[], likes: LikeRow[], downloa
   };
 }
 
+const storage = { publicUrl: (key: string) => `http://storage.test/uploads/${key}` };
+
 describe('LibraryService', () => {
   const day = (n: number) => new Date(Date.UTC(2026, 0, n));
 
@@ -166,7 +168,7 @@ describe('LibraryService', () => {
 
   beforeEach(() => {
     prisma = createPrismaMock(samples, likes, downloads);
-    service = new LibraryService(prisma as unknown as PrismaService);
+    service = new LibraryService(prisma as unknown as PrismaService, storage as never);
   });
 
   const ids = (response: { items: Array<{ id: string }> }) => response.items.map((item) => item.id);
@@ -288,7 +290,7 @@ describe('LibraryService', () => {
 
     it('returns an empty list without activity', async () => {
       prisma = createPrismaMock(samples.filter((s) => s.status !== 'DRAFT'), likes, downloads);
-      service = new LibraryService(prisma as unknown as PrismaService);
+      service = new LibraryService(prisma as unknown as PrismaService, storage as never);
 
       expect(await service.getContinueWorking(ME)).toEqual([]);
     });

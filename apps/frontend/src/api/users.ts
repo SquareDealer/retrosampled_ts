@@ -25,9 +25,8 @@ export type ProfileSamplesResponse = {
 };
 
 /**
- * `avatarUrl` may arrive as a full URL (users endpoints) or as a raw storage
- * key (`/auth/me`, until the auth service is unified with the storage helper).
- * Both render correctly through this.
+ * Every endpoint now returns `avatarUrl` as a full URL (`StoragePort.publicUrl`).
+ * Raw storage keys from older sessions still render through this fallback.
  */
 export function resolveAvatarUrl(value: string | null | undefined): string | null {
   if (!value) return null;

@@ -30,41 +30,50 @@ function buildService(initialLikesCount: number, alreadyLiked: boolean, ownerId 
         return { count: 1 };
       }),
     },
-    notification: { create: jest.fn(async () => ({})) },
   };
 
+  const notifications = { notify: jest.fn(async () => null) };
   const prisma = { $transaction: jest.fn(async (fn: (t: typeof tx) => unknown) => fn(tx)) };
   const access = {
     assertCan: jest.fn(async () => ({ id: 's1', ownerId, title: 'Sample', status: 'PUBLISHED' })),
   };
 
-  return { service: new LikesService(prisma as never, access as never), tx, access };
+  return {
+    service: new LikesService(prisma as never, access as never, notifications as never),
+    tx,
+    access,
+    notifications,
+  };
 }
 
 describe('LikesService', () => {
   it('like creates the row, bumps the counter and notifies the owner', async () => {
-    const { service, tx } = buildService(4, false);
+    const { service, tx, notifications } = buildService(4, false);
 
     await expect(service.like(USER, 's1')).resolves.toEqual({ liked: true, likesCount: 5 });
     expect(tx.like.create).toHaveBeenCalledTimes(1);
     expect(tx.sample.update).toHaveBeenCalledTimes(1);
-    expect(tx.notification.create).toHaveBeenCalledTimes(1);
+    expect(notifications.notify).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 'owner', actorId: 'u1', type: 'LIKE', sampleId: 's1' }),
+    );
   });
 
   it('like is idempotent: a second call changes nothing', async () => {
-    const { service, tx } = buildService(4, true);
+    const { service, tx, notifications } = buildService(4, true);
 
     await expect(service.like(USER, 's1')).resolves.toEqual({ liked: true, likesCount: 4 });
     expect(tx.like.create).not.toHaveBeenCalled();
     expect(tx.sample.update).not.toHaveBeenCalled();
-    expect(tx.notification.create).not.toHaveBeenCalled();
+    expect(notifications.notify).not.toHaveBeenCalled();
   });
 
-  it('does not notify yourself', async () => {
-    const { service, tx } = buildService(0, false, USER.id);
+  it('self-likes reach notify() with actor === recipient, which skips them uniformly', async () => {
+    const { service, notifications } = buildService(0, false, USER.id);
 
     await service.like(USER, 's1');
-    expect(tx.notification.create).not.toHaveBeenCalled();
+    expect(notifications.notify).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: USER.id, actorId: USER.id, type: 'LIKE' }),
+    );
   });
 
   it('unlike removes the row and decrements once; repeating is a no-op', async () => {

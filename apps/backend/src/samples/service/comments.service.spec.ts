@@ -131,6 +131,7 @@ describe('CommentsService', () => {
       prisma as unknown as PrismaService,
       access as unknown as SampleAccessService,
       notifications as unknown as NotificationsService,
+      { publicUrl: (key: string) => `http://storage.test/uploads/${key}` } as never,
     );
   };
 

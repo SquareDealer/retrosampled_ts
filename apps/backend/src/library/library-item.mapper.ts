@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { LibraryItem, LibraryStatus } from '@retrosampled/shared';
-import { publicUrlForKey } from '../common/storage-url';
+import { publicUrlOrNull } from '../storage/public-url';
+import { StoragePort } from '../storage/storage.port';
 
 /**
  * Everything the library needs from a sample row, in one `include`. Built
@@ -27,6 +28,8 @@ export type LibraryUserContext = {
   userId: string;
   likedSampleIds: Set<string>;
   downloadedSampleIds: Set<string>;
+  /** Resolves object keys to URLs (`StoragePort.publicUrl`). */
+  storage: Pick<StoragePort, 'publicUrl'>;
 };
 
 export function toLibraryStatus(status: string): LibraryStatus {
@@ -53,6 +56,7 @@ export function searchText(sample: LibrarySampleRow): string {
 export function toLibraryItem(sample: LibrarySampleRow, context: LibraryUserContext): LibraryItem {
   const owned = sample.ownerId === context.userId;
   const isRemake = sample.parentId !== null;
+  const url = (key: string | null | undefined) => publicUrlOrNull(context.storage, key);
 
   const item: LibraryItem = {
     id: sample.id,
@@ -61,11 +65,11 @@ export function toLibraryItem(sample: LibrarySampleRow, context: LibraryUserCont
     creator: {
       id: sample.owner.id,
       username: sample.owner.username,
-      avatarUrl: publicUrlForKey(sample.owner.avatarKey),
+      avatarUrl: url(sample.owner.avatarKey),
     },
-    coverUrl: publicUrlForKey(sample.coverKey),
-    audioPreviewUrl: publicUrlForKey(sample.audioKey),
-    waveformUrl: publicUrlForKey(sample.peaksKey),
+    coverUrl: url(sample.coverKey),
+    audioPreviewUrl: url(sample.audioKey),
+    waveformUrl: url(sample.peaksKey),
     durationSec: Math.round(sample.durationSec ?? 0),
     bpm: sample.bpm ?? null,
     key: sample.musicalKey ?? null,

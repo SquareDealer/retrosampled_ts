@@ -54,13 +54,15 @@ function createPrismaMock(rows: Row[] = []) {
   };
 }
 
+const storage = { publicUrl: (key: string) => `http://storage.test/uploads/${key}` };
+
 describe('NotificationsService', () => {
   let prisma: ReturnType<typeof createPrismaMock>;
   let service: NotificationsService;
 
   const build = (rows: Row[] = []) => {
     prisma = createPrismaMock(rows);
-    service = new NotificationsService(prisma as unknown as PrismaService);
+    service = new NotificationsService(prisma as unknown as PrismaService, storage as never);
   };
 
   beforeEach(() => build());

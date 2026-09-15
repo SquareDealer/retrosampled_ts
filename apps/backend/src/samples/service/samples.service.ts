@@ -20,6 +20,8 @@ import {
 } from '@retrosampled/shared';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RequestUser } from '../../common/types/authenticated-request';
+import { LibraryService } from '../../library/service/library.service';
+import { NotificationsService } from '../../notifications/service/notifications.service';
 import { STORAGE, StoragePort } from '../../storage/storage.port';
 import {
   UploadedFileLike,
@@ -89,6 +91,8 @@ export class SamplesService {
     private readonly processing: ProcessingService,
     private readonly cleanup: StorageCleanupHook,
     @Inject(STORAGE) private readonly storage: StoragePort,
+    private readonly notifications: NotificationsService,
+    private readonly library: LibraryService,
     config: ConfigService,
   ) {
     const mb = Number(config.get('MAX_UPLOAD_MB') ?? DEFAULT_MAX_UPLOAD_MB);
@@ -220,8 +224,22 @@ export class SamplesService {
     };
   }
 
-  getDetail(sampleId: string, actor: Actor): Promise<SampleDetail> {
-    return this.detail.getDetail(sampleId, actor);
+  /**
+   * `GET /samples/:id`. Signed-in viewers get a RecentActivity row so the
+   * library's "Continue working" can show what they last opened.
+   */
+  async getDetail(sampleId: string, actor: Actor): Promise<SampleDetail> {
+    const detail = await this.detail.getDetail(sampleId, actor);
+
+    if (actor) {
+      try {
+        await this.library.touch(actor.id, detail.id);
+      } catch (error) {
+        this.logger.warn(`recent activity for ${detail.id} not recorded: ${String(error)}`);
+      }
+    }
+
+    return detail;
   }
 
   // ---------------------------------------------------------------- create
@@ -637,18 +655,17 @@ export class SamplesService {
       select: { ownerId: true, title: true },
     });
 
-    if (!parent || parent.ownerId === actor.id) {
+    if (!parent) {
       return;
     }
 
-    await this.prisma.notification.create({
-      data: {
-        userId: parent.ownerId,
-        actorId: actor.id,
-        type: 'REMAKE',
-        sampleId: sample.id,
-        data: JSON.stringify({ parentTitle: parent.title, sampleTitle: sample.title }),
-      },
+    // Self-remakes are skipped inside notify().
+    await this.notifications.notify({
+      userId: parent.ownerId,
+      actorId: actor.id,
+      type: 'REMAKE',
+      sampleId: sample.id,
+      data: { parentTitle: parent.title, sampleTitle: sample.title },
     });
   }
 }

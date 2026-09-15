@@ -2,24 +2,27 @@ import { Injectable } from '@nestjs/common';
 import { LikeResponse } from '@retrosampled/shared';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RequestUser } from '../../common/types/authenticated-request';
+import { NotificationsService } from '../../notifications/service/notifications.service';
 import { SampleAccessService, toActor } from './sample-access.service';
 
 /**
  * Idempotent like / unlike. The `Like` row and the `likesCount` counter change
  * in one transaction; repeating a call is a no-op that still returns the
- * current state, so an optimistic client can retry safely.
+ * current state, so an optimistic client can retry safely. The LIKE
+ * notification goes through `NotificationsService.notify` (self-likes skipped).
  */
 @Injectable()
 export class LikesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly access: SampleAccessService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async like(actor: RequestUser, sampleId: string): Promise<LikeResponse> {
     const sample = await this.access.assertCan(toActor(actor), 'sample:like', sampleId);
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const existing = await tx.like.findUnique({
         where: { userId_sampleId: { userId: actor.id, sampleId } },
         select: { id: true },
@@ -30,7 +33,7 @@ export class LikesService {
           where: { id: sampleId },
           select: { likesCount: true },
         });
-        return { liked: true, likesCount: current.likesCount };
+        return { liked: true, likesCount: current.likesCount, created: false };
       }
 
       await tx.like.create({ data: { userId: actor.id, sampleId } });
@@ -41,20 +44,20 @@ export class LikesService {
         select: { likesCount: true },
       });
 
-      if (sample.ownerId !== actor.id) {
-        await tx.notification.create({
-          data: {
-            userId: sample.ownerId,
-            actorId: actor.id,
-            type: 'LIKE',
-            sampleId,
-            data: JSON.stringify({ sampleTitle: sample.title }),
-          },
-        });
-      }
-
-      return { liked: true, likesCount: updated.likesCount };
+      return { liked: true, likesCount: updated.likesCount, created: true };
     });
+
+    if (result.created) {
+      await this.notifications.notify({
+        userId: sample.ownerId,
+        actorId: actor.id,
+        type: 'LIKE',
+        sampleId,
+        data: { sampleTitle: sample.title },
+      });
+    }
+
+    return { liked: result.liked, likesCount: result.likesCount };
   }
 
   async unlike(actor: RequestUser, sampleId: string): Promise<LikeResponse> {

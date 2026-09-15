@@ -1,7 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { SearchResponse, SearchType } from '@retrosampled/shared';
 import { PrismaService } from '../../prisma/prisma.service';
-import { publicUrlForKey } from '../../common/storage-url';
+import { publicUrlOrNull } from '../../storage/public-url';
+import { STORAGE, StoragePort } from '../../storage/storage.port';
 
 const DEFAULT_LIMIT = 10;
 
@@ -12,7 +13,10 @@ const DEFAULT_LIMIT = 10;
  */
 @Injectable()
 export class SearchService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(STORAGE) private readonly storage: StoragePort,
+  ) {}
 
   async search(
     rawQuery: string,
@@ -98,7 +102,7 @@ export class SearchService {
       owner: {
         id: sample.owner.id,
         username: sample.owner.username,
-        avatarUrl: publicUrlForKey(sample.owner.avatarKey),
+        avatarUrl: publicUrlOrNull(this.storage, sample.owner.avatarKey),
       },
     }));
 
@@ -106,7 +110,7 @@ export class SearchService {
       id: user.id,
       username: user.username,
       displayName: user.displayName ?? null,
-      avatarUrl: publicUrlForKey(user.avatarKey),
+      avatarUrl: publicUrlOrNull(this.storage, user.avatarKey),
       followersCount: user.followersCount,
       isFollowing: followed.has(user.id),
     }));

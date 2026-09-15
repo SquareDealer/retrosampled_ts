@@ -49,12 +49,13 @@ function buildService(rows: ReturnType<typeof row>[]) {
     },
     user: { findUnique: jest.fn(async () => null), updateMany: jest.fn(async () => ({})) },
     like: { findMany: jest.fn(async () => []) },
-    notification: { create: jest.fn(async () => ({})) },
   };
   const access = { assertCan: jest.fn(), check: jest.fn() };
   const mapper = { toSample: jest.fn((r: { id: string }) => ({ id: r.id })) };
   const detail = { getDetail: jest.fn(async (id: string) => ({ id })) };
   const config = { get: jest.fn(() => undefined) };
+  const notifications = { notify: jest.fn(async () => null) };
+  const library = { touch: jest.fn(async () => undefined) };
 
   const service = new SamplesService(
     prisma as never,
@@ -64,10 +65,12 @@ function buildService(rows: ReturnType<typeof row>[]) {
     {} as never,
     {} as never,
     {} as never,
+    notifications as never,
+    library as never,
     config as never,
   );
 
-  return { service, prisma, access, detail };
+  return { service, prisma, access, detail, notifications, library };
 }
 
 describe('SamplesService.list', () => {

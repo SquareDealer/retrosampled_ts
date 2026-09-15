@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import {
   ContinueWorkingItem,
@@ -8,6 +8,7 @@ import {
   LibraryTab,
 } from '@retrosampled/shared';
 import { PrismaService } from '../../prisma/prisma.service';
+import { STORAGE, StoragePort } from '../../storage/storage.port';
 import {
   CursorKey,
   afterCursor,
@@ -45,7 +46,10 @@ type Keyed = { k: CursorKey; id: string; sample: LibrarySampleRow };
 
 @Injectable()
 export class LibraryService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(STORAGE) private readonly storage: StoragePort,
+  ) {}
 
   // --- items ---------------------------------------------------------------
 
@@ -211,7 +215,7 @@ export class LibraryService {
     );
 
     return {
-      items: page.map((entry) => toLibraryItem(entry.sample, { userId, ...state })),
+      items: page.map((entry) => toLibraryItem(entry.sample, { userId, storage: this.storage, ...state })),
       nextCursor,
     };
   }

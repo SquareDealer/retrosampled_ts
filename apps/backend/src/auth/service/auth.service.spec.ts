@@ -82,6 +82,8 @@ function createTokenMock() {
   };
 }
 
+const storage = { publicUrl: (key: string) => `http://storage.test/uploads/${key}` };
+
 describe('AuthService', () => {
   let prisma: ReturnType<typeof createPrismaMock>;
   let tokens: ReturnType<typeof createTokenMock>;
@@ -93,6 +95,7 @@ describe('AuthService', () => {
     service = new AuthService(
       prisma as unknown as PrismaService,
       tokens as unknown as TokenService,
+      storage as never,
     );
   };
 

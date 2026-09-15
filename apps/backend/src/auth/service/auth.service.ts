@@ -1,4 +1,5 @@
 import {
+  Inject,
   BadRequestException,
   ConflictException,
   Injectable,
@@ -8,6 +9,8 @@ import * as bcrypt from 'bcryptjs';
 import { User } from '@prisma/client';
 import { UserRole } from '@retrosampled/shared';
 import { PrismaService } from '../../prisma/prisma.service';
+import { publicUrlOrNull } from '../../storage/public-url';
+import { STORAGE, StoragePort } from '../../storage/storage.port';
 import { TokenService } from './token.service';
 
 const BCRYPT_ROUNDS = 10;
@@ -33,6 +36,7 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly tokenService: TokenService,
+    @Inject(STORAGE) private readonly storage: StoragePort,
   ) {}
 
   private toAuthUser(user: User): AuthUserPayload {
@@ -41,7 +45,7 @@ export class AuthService {
       email: user.email,
       username: user.username,
       role: user.role as UserRole,
-      avatarUrl: user.avatarKey ?? null,
+      avatarUrl: publicUrlOrNull(this.storage, user.avatarKey),
     };
   }
 
@@ -189,7 +193,7 @@ export class AuthService {
       email: user.email,
       username: user.username,
       displayName: user.displayName ?? null,
-      avatarUrl: user.avatarKey ?? null,
+      avatarUrl: publicUrlOrNull(this.storage, user.avatarKey),
       role: user.role as UserRole,
     };
   }

@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { Comment } from '@prisma/client';
 import { Actor, CommentsPageResponse, SampleComment } from '@retrosampled/shared';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -9,7 +9,8 @@ import {
   facetHash,
   takePage,
 } from '../../common/pagination/cursor';
-import { publicUrlForKey } from '../../common/storage-url';
+import { publicUrlOrNull } from '../../storage/public-url';
+import { STORAGE, StoragePort } from '../../storage/storage.port';
 import { SampleAccessService } from './sample-access.service';
 import { CommentSort } from '../dto/comment.dto';
 
@@ -33,6 +34,7 @@ export class CommentsService {
     private readonly prisma: PrismaService,
     private readonly access: SampleAccessService,
     private readonly notifications: NotificationsService,
+    @Inject(STORAGE) private readonly storage: StoragePort,
   ) {}
 
   private toDto(row: CommentRow, actor: Actor, replies?: CommentRow[]): SampleComment {
@@ -41,7 +43,7 @@ export class CommentsService {
       user: {
         id: row.user.id,
         username: row.user.username,
-        avatarUrl: publicUrlForKey(row.user.avatarKey) ?? undefined,
+        avatarUrl: publicUrlOrNull(this.storage, row.user.avatarKey) ?? undefined,
       },
       text: row.text,
       createdAt: row.createdAt.toISOString(),

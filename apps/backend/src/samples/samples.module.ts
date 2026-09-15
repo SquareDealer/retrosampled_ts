@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { LibraryModule } from '../library/library.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { UploadsModule } from '../uploads/uploads.module';
 import { SamplesController } from './controller/samples.controller';
 import { SampleMapper } from './mappers/sample.mapper';
@@ -16,7 +18,7 @@ import { StorageCleanupHook } from './storage-cleanup.hook';
  * comments) so every list renders through the same mapping code.
  */
 @Module({
-  imports: [SamplesAccessModule, UploadsModule],
+  imports: [SamplesAccessModule, UploadsModule, NotificationsModule, LibraryModule],
   controllers: [SamplesController],
   providers: [
     SampleMapper,

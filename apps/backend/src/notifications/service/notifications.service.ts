@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { Notification, Prisma } from '@prisma/client';
 import {
   NotificationDto,
@@ -12,7 +12,8 @@ import {
   encodeCursor,
   facetHash,
 } from '../../common/pagination/cursor';
-import { publicUrlForKey } from '../../common/storage-url';
+import { publicUrlOrNull } from '../../storage/public-url';
+import { STORAGE, StoragePort } from '../../storage/storage.port';
 
 /**
  * Input for {@link NotificationsService.notify}. Task 3.1a's samples module
@@ -46,7 +47,10 @@ const MAX_LIMIT = 50;
 
 @Injectable()
 export class NotificationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(STORAGE) private readonly storage: StoragePort,
+  ) {}
 
   /**
    * Creates a notification. A user never gets notified about their own action
@@ -108,7 +112,7 @@ export class NotificationsService {
         ? {
             id: row.actor.id,
             username: row.actor.username,
-            avatarUrl: publicUrlForKey(row.actor.avatarKey),
+            avatarUrl: publicUrlOrNull(this.storage, row.actor.avatarKey),
           }
         : null,
       sample: row.sample ? { id: row.sample.id, title: row.sample.title } : null,

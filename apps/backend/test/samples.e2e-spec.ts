@@ -1,5 +1,5 @@
-import { resolve } from 'path';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { Test, TestingModule } from '@nestjs/testing';
 import * as cookieParser from 'cookie-parser';
@@ -7,6 +7,7 @@ import * as request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { AllExceptionsFilter } from '../src/common/filters/all-exceptions.filter';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { serveLocalUploads } from '../src/storage/uploads-static';
 import { encodePcm16Wav } from '../src/uploads/service/wav-reader';
 
 type Cookies = Record<string, string>;
@@ -75,9 +76,7 @@ describe('Samples (e2e)', () => {
     );
     app.useGlobalFilters(new AllExceptionsFilter());
     // Mirrors main.ts so the download URL of the local driver can be fetched.
-    app.useStaticAssets(resolve(process.env.LOCAL_STORAGE_DIR ?? './uploads'), {
-      prefix: '/uploads/',
-    });
+    serveLocalUploads(app, app.get(ConfigService));
 
     await app.init();
     server = app.getHttpServer();

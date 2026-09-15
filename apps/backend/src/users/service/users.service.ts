@@ -22,8 +22,8 @@ import {
   encodeCursor,
   facetHash,
 } from '../../common/pagination/cursor';
-import { publicUrlForKey } from '../../common/storage-url';
-import { AVATAR_STORAGE, AvatarStorage } from '../avatar-storage.service';
+import { publicUrlOrNull } from '../../storage/public-url';
+import { STORAGE, StoragePort } from '../../storage/storage.port';
 
 export type UploadedAvatar = {
   buffer: Buffer;
@@ -59,8 +59,12 @@ const USER_SUMMARY_SELECT = {
 export class UsersService {
   constructor(
     private readonly prisma: PrismaService,
-    @Inject(AVATAR_STORAGE) private readonly avatars: AvatarStorage,
+    @Inject(STORAGE) private readonly storage: StoragePort,
   ) {}
+
+  private avatarUrl(key: string | null | undefined): string | null {
+    return publicUrlOrNull(this.storage, key);
+  }
 
   private parseLinks(raw: string | null | undefined): Record<string, string> {
     if (!raw) {
@@ -110,7 +114,7 @@ export class UsersService {
       id: user.id,
       username: user.username,
       displayName: user.displayName ?? null,
-      avatarUrl: publicUrlForKey(user.avatarKey),
+      avatarUrl: this.avatarUrl(user.avatarKey),
       bio: user.bio ?? null,
       links: this.parseLinks(user.links),
       role: user.role as UserRole,
@@ -131,7 +135,7 @@ export class UsersService {
     return {
       userId: user.id,
       username: user.username,
-      avatarUrl: publicUrlForKey(user.avatarKey),
+      avatarUrl: this.avatarUrl(user.avatarKey),
       bio: user.bio ?? null,
       links: this.parseLinks(user.links),
     };
@@ -142,7 +146,7 @@ export class UsersService {
       id: row.id,
       username: row.username,
       displayName: row.displayName ?? null,
-      avatarUrl: publicUrlForKey(row.avatarKey),
+      avatarUrl: this.avatarUrl(row.avatarKey),
       followersCount: row.followersCount,
       isFollowing: followingIds.has(row.id),
     };
@@ -262,21 +266,20 @@ export class UsersService {
     const key = `avatars/${userId}.${extension}`;
 
     if (user.avatarKey && user.avatarKey !== key) {
-      await this.avatars.delete(user.avatarKey);
+      await this.storage.delete(user.avatarKey);
     }
 
-    const avatarUrl = await this.avatars.put(key, file.buffer, file.mimetype);
-
+    await this.storage.put(key, file.buffer, { contentType: file.mimetype });
     await this.prisma.user.update({ where: { id: userId }, data: { avatarKey: key } });
 
-    return { avatarUrl };
+    return { avatarUrl: this.storage.publicUrl(key) };
   }
 
   async removeAvatar(userId: string): Promise<AvatarResponse> {
     const user = await this.findActiveById(userId);
 
     if (user.avatarKey) {
-      await this.avatars.delete(user.avatarKey);
+      await this.storage.delete(user.avatarKey);
       await this.prisma.user.update({ where: { id: userId }, data: { avatarKey: null } });
     }
 

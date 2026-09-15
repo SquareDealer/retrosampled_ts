@@ -437,6 +437,47 @@
   flex: 1;
 }
 
+.upload-collab-suggestions {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid #ffffff30;
+  background: #050505;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.upload-collab-suggestion {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 6px 10px;
+  border: 0;
+  border-bottom: 1px solid #ffffff14;
+  background: transparent;
+  color: var(--up-text);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.upload-collab-suggestions li:last-child .upload-collab-suggestion {
+  border-bottom: 0;
+}
+
+.upload-collab-suggestion:hover,
+.upload-collab-suggestion:focus-visible {
+  background: #ffffff12;
+  outline: none;
+}
+
+.upload-collab-suggestion__display {
+  color: #ffffff80;
+  margin-left: auto;
+}
+
 /* dropzone */
 .upload-dropzone {
   border: 1px dashed var(--up-border-strong);

@@ -1,9 +1,12 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { Test } from '@nestjs/testing';
 import * as cookieParser from 'cookie-parser';
 import * as request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { AllExceptionsFilter } from '../src/common/filters/all-exceptions.filter';
+import { serveLocalUploads } from '../src/storage/uploads-static';
 
 export type Cookies = Record<string, string>;
 
@@ -27,11 +30,12 @@ export function cookieHeader(cookies: Cookies): string {
     .join('; ');
 }
 
-/** Boots the whole app exactly like `main.ts` (pipes, filter, cookies). */
+/** Boots the whole app exactly like `main.ts` (pipes, filter, cookies, /uploads). */
 export async function createTestApp(): Promise<INestApplication> {
   const moduleFixture = await Test.createTestingModule({ imports: [AppModule] }).compile();
-  const app = moduleFixture.createNestApplication();
+  const app = moduleFixture.createNestApplication<NestExpressApplication>();
 
+  serveLocalUploads(app, app.get(ConfigService));
   app.use(cookieParser());
   app.useGlobalPipes(
     new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
