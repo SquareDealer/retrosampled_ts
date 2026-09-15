@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAudioContextManager } from "../AudioContextManager";
 import { WaveformFromJsonForSample } from "../waveform/WaveformFromJsonForSample";
+import { HeartIcon, PauseIcon, PlayIcon } from "../icons";
 import { Sample } from "../../types/Sample";
 import { RelatedSamplesTree, SampleShort } from "../../types/sampleDetail";
 
@@ -231,11 +232,7 @@ const RelatedSampleRow: React.FC<RelatedSampleRowProps> = ({
             type="button"
             aria-label={isPlaying ? "Pause sample" : "Play sample"}
           >
-            <img
-              className="sample-row__play-icon"
-              src={isPlaying ? "/img/pause_icon.png" : "/img/play_icon.png"}
-              alt={isPlaying ? "Pause" : "Play"}
-            />
+            {isPlaying ? <PauseIcon size={18} /> : <PlayIcon size={18} />}
           </button>
 
           <div
@@ -287,7 +284,9 @@ const RelatedSampleRow: React.FC<RelatedSampleRowProps> = ({
           type="button"
           aria-label={isLiked ? "Unlike sample" : "Like sample"}
           onClick={handleLike}
-        />
+        >
+          <HeartIcon filled={isLiked} size={16} />
+        </button>
       </div>
     </article>
   );

@@ -152,11 +152,18 @@
   opacity: 0.65;
 }
 
-.sample-row__play-icon {
+.sample-row__play {
+  color: var(--text-primary);
+}
+
+.sample-row__play:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.sample-row__play > svg {
   display: block;
-  width: 20px;
-  height: 16px;
-  image-rendering: pixelated;
+  flex-shrink: 0;
 }
 
 .sample-row__waveform {
@@ -257,19 +264,35 @@
 }
 
 .sample-row__like {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
   border: none;
-  background: url('/img/heart_icon.png') center / contain no-repeat;
+  background: transparent;
+  color: var(--text-secondary);
   cursor: pointer;
-  width: 18px;
-  height: 18px;
-  padding: 4px;
-  image-rendering: pixelated;
+  padding: 0;
   flex-shrink: 0;
+  transition: color 0.15s ease;
 }
 
 .sample-row__like:hover,
 .sample-row__like--active {
-  background-image: url('/img/active_heart_icon.png');
+  color: var(--liked);
+}
+
+.sample-row__like:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sample-row__play,
+  .sample-row__like {
+    transition: none;
+  }
 }
 
 .sample-row__remakes-toggle {
@@ -320,9 +343,9 @@
   height: 40px;
 }
 
-.sample-row--compact .sample-row__play-icon {
-  width: 18px;
-  height: 14px;
+.sample-row--compact .sample-row__play > svg {
+  width: 16px;
+  height: 16px;
 }
 
 /* ─────────────────────────────────────────────────────────────

@@ -1,6 +1,7 @@
 import React from "react";
 import "./HeaderNavBar.css";
 import logoImage from "../../../../src/public/icons/logo.png";
+import { BellIcon, MoreHorizontalIcon, SearchIcon } from "./icons";
 
 export type Mode = "authenticated" | "unauthenticated";
 
@@ -119,21 +120,7 @@ export const HeaderNavBar: React.FC<HeaderNavBarProps> = ({
           className="header-nav-bar__search-submit"
           aria-label="Submit search"
         >
-          <svg
-            className="header-nav-bar__search-submit-icon"
-            viewBox="0 0 20 20"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            aria-hidden="true"
-          >
-            <circle cx="8.5" cy="8.5" r="4.75" stroke="currentColor" strokeWidth="1.5" />
-            <path
-              d="M12 12L16.25 16.25"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="square"
-            />
-          </svg>
+          <SearchIcon size={18} className="header-nav-bar__search-submit-icon" />
         </button>
       </form>
 
@@ -190,7 +177,7 @@ export const HeaderNavBar: React.FC<HeaderNavBarProps> = ({
               onClick={onNotificationsClick}
               aria-label="Notifications"
             >
-              Bell
+              <BellIcon size={18} />
               {visibleNotificationsCount > 0 && (
                 <span className="header-nav-bar__notifications-count">
                   {visibleNotificationsCount > 99 ? "99+" : visibleNotificationsCount}
@@ -203,7 +190,7 @@ export const HeaderNavBar: React.FC<HeaderNavBarProps> = ({
               onClick={onMoreActionsClick}
               aria-label="More actions"
             >
-              More
+              <MoreHorizontalIcon size={18} />
             </button>
           </>
         )}

@@ -5,6 +5,7 @@ import {
   CreatorViewModel,
 } from "../../types/sampleDetail";
 import { formatCompactNumber } from "../../utils/formatCompactNumber";
+import { RemakeIcon, TracksIcon, UsersIcon } from "../icons";
 
 const ROLE_LABELS: Record<CreatorRole, string> = {
   OG_CREATOR: "OG",
@@ -141,28 +142,19 @@ const CreatorCard: React.FC<CreatorCardProps> = ({
           <span className="creators-card__stat-value">
             {formatCompactNumber(creator.stats.followersCount)}
           </span>
-          <span
-            className="creators-card__stat-icon creators-card__stat-icon--followers"
-            aria-hidden="true"
-          />
+          <UsersIcon className="creators-card__stat-icon" size={16} />
         </li>
         <li className="creators-card__stat" aria-label="Remakes made count">
           <span className="creators-card__stat-value">
             {formatCompactNumber(creator.stats.remakesMadeCount)}
           </span>
-          <span
-            className="creators-card__stat-icon creators-card__stat-icon--remakes"
-            aria-hidden="true"
-          />
+          <RemakeIcon className="creators-card__stat-icon" size={16} />
         </li>
         <li className="creators-card__stat" aria-label="Tracks remixed count">
           <span className="creators-card__stat-value">
             {formatCompactNumber(creator.stats.tracksRemixedCount)}
           </span>
-          <span
-            className="creators-card__stat-icon creators-card__stat-icon--tracks"
-            aria-hidden="true"
-          />
+          <TracksIcon className="creators-card__stat-icon" size={16} />
         </li>
       </ul>
 

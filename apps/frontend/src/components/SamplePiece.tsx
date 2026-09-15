@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { WaveformFromJsonForSample } from "./waveform/WaveformFromJsonForSample";
 import { useAudioContextManager } from "./AudioContextManager";
 import { Sample } from "../types/Sample";
+import { HeartIcon, PauseIcon, PlayIcon } from "./icons";
 import "./SampleRow.css";
 
 interface SamplePieceProps {
@@ -153,12 +154,13 @@ export const SamplePiece: React.FC<SamplePieceProps> = ({
       <div className="sample-row__center">
         <div className="sample-row__media">
           {/* Play Button */}
-          <button className="sample-row__play" onClick={handlePlayClick}>
-            <img 
-                className="sample-row__play-icon" 
-                src={isPlaying ? "/img/pause_icon.png" : "/img/play_icon.png"} 
-                alt={isPlaying ? "Pause" : "Play"} 
-            />
+          <button
+            className="sample-row__play"
+            type="button"
+            aria-label={isPlaying ? "Pause" : "Play"}
+            onClick={handlePlayClick}
+          >
+            {isPlaying ? <PauseIcon size={18} /> : <PlayIcon size={18} />}
           </button>
 
           {/* Waveform */}
@@ -204,7 +206,9 @@ export const SamplePiece: React.FC<SamplePieceProps> = ({
             type="button"
             aria-label={isLiked ? "Unlike" : "Like"}
             onClick={handleLikeClick}
-          />
+          >
+            <HeartIcon filled={isLiked} size={16} />
+          </button>
         </div>
       </div>
     </div>

@@ -141,7 +141,7 @@
 .sample-actions-bar__icon {
   width: 18px;
   height: 18px;
-  fill: currentColor;
+  flex-shrink: 0;
 }
 
 .sample-page__menu {
@@ -610,7 +610,7 @@
 .related-samples__like--active,
 .related-samples .sample-row__like--active,
 .related-samples .sample-row__like:hover {
-  background-image: url("/img/active_heart_icon.png");
+  color: var(--liked);
 }
 
 .related-samples__empty {
@@ -802,22 +802,8 @@
   width: clamp(14px, 1.8vw, 18px);
   height: clamp(14px, 1.8vw, 18px);
   display: inline-block;
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: contain;
-  image-rendering: pixelated;
-}
-
-.creators-card__stat-icon--followers {
-  background-image: url("/icons/subscribers_count_icon.png");
-}
-
-.creators-card__stat-icon--remakes {
-  background-image: url("/icons/remakes_count_icon.png");
-}
-
-.creators-card__stat-icon--tracks {
-  background-image: url("/icons/og_tracks_count_icon.png");
+  color: #ffffff9c;
+  flex-shrink: 0;
 }
 
 .creators-card__follow {

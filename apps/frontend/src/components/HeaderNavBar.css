@@ -250,6 +250,9 @@
 .header-nav-bar__icon-action {
   position: relative;
   min-width: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: 1px solid #ffffff30;
   background: transparent;
   color: #fff;
