@@ -14,6 +14,11 @@ import { StorageModule } from './storage/storage.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { SamplesModule } from './samples/samples.module';
 import { SampleDeletionHookModule } from './samples/sample-deletion-hook.module';
+import { FollowsModule } from './follows/follows.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { LibraryModule } from './library/library.module';
+import { SearchModule } from './search/search.module';
+import { CommentsModule } from './samples/comments.module';
 
 @Module({
   imports: [
@@ -33,6 +38,11 @@ import { SampleDeletionHookModule } from './samples/sample-deletion-hook.module'
     SampleDeletionHookModule,
     SamplesModule,
     // Task 3.2 appends: FollowsModule, NotificationsModule, LibraryModule, SearchModule
+    FollowsModule,
+    NotificationsModule,
+    LibraryModule,
+    SearchModule,
+    CommentsModule,
   ],
   controllers: [AppController],
   providers: [

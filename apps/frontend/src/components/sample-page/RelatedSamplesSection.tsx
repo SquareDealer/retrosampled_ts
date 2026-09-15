@@ -3,8 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAudioContextManager } from "../AudioContextManager";
 import { WaveformFromJsonForSample } from "../waveform/WaveformFromJsonForSample";
-import { Sample } from "../../types/Sample";
-import { RelatedSamplesTree, SampleShort } from "../../types/sampleDetail";
+import { RelatedSamplesTree, Sample, SampleShort } from "@retrosampled/shared";
 import { useLikeSample } from "../../hooks/useLikeSample";
 
 type FeedbackTone = "success" | "error";

@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { SampleAuthor } from "../../types/sampleDetail";
+import { SampleAuthor } from "@retrosampled/shared";
 
 type InheritedRef = {
   id: string;

@@ -33,15 +33,6 @@ export type FetchSamplesQuery = SamplesQuery & {
 
 export type FetchSamplesResponse = SamplesListResponse;
 
-// Mock-only helpers that Task 3.2 replaces at their call sites.
-export {
-  fetchSampleComments,
-  listMockSampleIds,
-  mockCreateCommentRequest,
-  mockToggleCreatorFollowRequest,
-  mockToggleLikeRequest,
-} from "../mocks/engine/samplesEngine";
-
 const appendParam = (params: URLSearchParams, key: string, value: unknown) => {
   if (value === undefined || value === null || value === "") {
     return;

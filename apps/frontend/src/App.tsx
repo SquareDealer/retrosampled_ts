@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Agentation } from 'agentation';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
-import UserPage from './components/UserPage';
 import { AudioManagerProvider } from './components/AudioContextManager';
 import MiniPlayer from './components/MiniPlayer';
 import SamplePage from './pages/SamplePage/SamplePage';
@@ -14,6 +13,11 @@ import AdminPage from './pages/AdminPage/AdminPage';
 import UploadPage from './pages/UploadPage/UploadPage';
 import RemakePage from './pages/RemakePage/RemakePage';
 import SampleEditPage from './pages/SampleEditPage/SampleEditPage';
+import ProfilePage from './pages/ProfilePage/ProfilePage';
+import FollowListPage from './pages/FollowListPage/FollowListPage';
+import NotificationsPage from './pages/NotificationsPage/NotificationsPage';
+import SettingsPage from './pages/SettingsPage/SettingsPage';
+import NotFoundPage from './pages/NotFoundPage/NotFoundPage';
 import { useAuth } from './auth/useAuth';
 import { can } from '@retrosampled/shared';
 
@@ -91,15 +95,15 @@ function App() {
           showAdminLink={isAdmin}
           onAdminClick={() => navigate('/admin')}
           onNotificationsClick={() => navigate('/notifications')}
-          onMoreActionsClick={() => {
-            void logout();
+          onSettingsClick={() => navigate('/settings')}
+          onLogoutClick={() => {
+            void logout().then(() => navigate('/feed'));
           }}
           user={headerUser}
-          notificationsCount={0}
         />
 
         <Routes>
-          <Route path="/" element={<UserPage />} />
+          <Route path="/" element={<Navigate to="/feed" replace />} />
           <Route
             path="/feed"
             element={
@@ -127,7 +131,9 @@ function App() {
               </RequireAuth>
             }
           />
-          <Route path="/user/:creatorId" element={<UserPage />} />
+          <Route path="/user/:username" element={<ProfilePage />} />
+          <Route path="/user/:username/followers" element={<FollowListPage mode="followers" />} />
+          <Route path="/user/:username/following" element={<FollowListPage mode="following" />} />
           <Route
             path="/upload"
             element={
@@ -136,7 +142,22 @@ function App() {
               </RequireAuth>
             }
           />
-          <Route path="/notifications" element={<UserPage />} />
+          <Route
+            path="/notifications"
+            element={
+              <RequireAuth>
+                <NotificationsPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <RequireAuth>
+                <SettingsPage />
+              </RequireAuth>
+            }
+          />
           <Route
             path="/admin"
             element={
@@ -147,7 +168,7 @@ function App() {
               </RequireAuth>
             }
           />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
 
         <MiniPlayer />

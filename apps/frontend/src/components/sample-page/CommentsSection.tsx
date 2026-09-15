@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { CommentsSortOption, SampleComment } from "../../types/sampleDetail";
+import { CommentsSortOption, SampleComment } from "@retrosampled/shared";
 import { formatTimeAgo } from "../../utils/formatTimeAgo";
 
 const MAX_COMMENT_LENGTH = 500;

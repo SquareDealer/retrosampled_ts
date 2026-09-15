@@ -10,3 +10,5 @@ export * from './dto/notification';
 export * from './dto/admin';
 // Task 3.1a
 export * from './dto/samples-api';
+// Task 3.2
+export * from './dto/social';

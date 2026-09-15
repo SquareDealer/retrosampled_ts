@@ -1,5 +1,4 @@
-import type { SampleDetail, SampleType } from "@retrosampled/shared";
-import type { Sample } from "../../types/Sample";
+import type { Sample, SampleDetail, SampleType } from "@retrosampled/shared";
 
 export const MAX_UPLOAD_MB = Number(import.meta.env.VITE_MAX_UPLOAD_MB) > 0
   ? Number(import.meta.env.VITE_MAX_UPLOAD_MB)
