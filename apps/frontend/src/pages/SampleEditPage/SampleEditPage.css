@@ -1,0 +1,36 @@
+.sample-edit__visibility {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.sample-edit__danger {
+  padding-top: 18px;
+  border-top: 1px solid #171717;
+}
+
+.sample-edit .library-status {
+  padding: 3px 7px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 11px;
+  text-transform: capitalize;
+  margin-right: 10px;
+}
+
+.sample-edit .library-status--published {
+  border-color: rgba(93, 255, 154, 0.45);
+  color: #8cffb4;
+}
+
+.sample-edit .library-status--draft,
+.sample-edit .library-status--processing {
+  border-color: rgba(244, 221, 0, 0.5);
+  color: #f4dd00;
+}
+
+.sample-edit .library-status--failed {
+  border-color: rgba(255, 91, 91, 0.55);
+  color: #ff7777;
+}

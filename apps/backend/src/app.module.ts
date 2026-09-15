@@ -10,6 +10,10 @@ import { AdminModule } from './admin/admin.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { validateEnv } from './config/env.validation';
+import { StorageModule } from './storage/storage.module';
+import { UploadsModule } from './uploads/uploads.module';
+import { SamplesModule } from './samples/samples.module';
+import { SampleDeletionHookModule } from './samples/sample-deletion-hook.module';
 
 @Module({
   imports: [
@@ -24,6 +28,10 @@ import { validateEnv } from './config/env.validation';
     // Task 2 appends: AdminModule
     AdminModule,
     // Task 3.1a appends: StorageModule, UploadsModule, SamplesModule
+    StorageModule,
+    UploadsModule,
+    SampleDeletionHookModule,
+    SamplesModule,
     // Task 3.2 appends: FollowsModule, NotificationsModule, LibraryModule, SearchModule
   ],
   controllers: [AppController],

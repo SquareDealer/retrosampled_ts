@@ -8,3 +8,5 @@ export * from './dto/library';
 export * from './dto/notification';
 // Task 2
 export * from './dto/admin';
+// Task 3.1a
+export * from './dto/samples-api';

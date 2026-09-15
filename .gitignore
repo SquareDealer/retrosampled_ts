@@ -58,4 +58,4 @@ dev.db*
 test.db*
 
 # Uploaded media (local storage driver)
-uploads/
+apps/backend/uploads/

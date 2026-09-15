@@ -11,6 +11,9 @@ import HeaderNavBar, { NavItemKey } from './components/HeaderNavBar';
 import RequireAuth from './components/RequireAuth';
 import RequireRole from './components/RequireRole';
 import AdminPage from './pages/AdminPage/AdminPage';
+import UploadPage from './pages/UploadPage/UploadPage';
+import RemakePage from './pages/RemakePage/RemakePage';
+import SampleEditPage from './pages/SampleEditPage/SampleEditPage';
 import { useAuth } from './auth/useAuth';
 import { can } from '@retrosampled/shared';
 
@@ -108,8 +111,31 @@ function App() {
           />
           <Route path="/library" element={<LibraryPage />} />
           <Route path="/sample/:sampleId" element={<SamplePage />} />
+          <Route
+            path="/sample/:sampleId/edit"
+            element={
+              <RequireAuth>
+                <SampleEditPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/sample/:sampleId/remake"
+            element={
+              <RequireAuth>
+                <RemakePage />
+              </RequireAuth>
+            }
+          />
           <Route path="/user/:creatorId" element={<UserPage />} />
-          <Route path="/upload" element={<UserPage />} />
+          <Route
+            path="/upload"
+            element={
+              <RequireAuth>
+                <UploadPage />
+              </RequireAuth>
+            }
+          />
           <Route path="/notifications" element={<UserPage />} />
           <Route
             path="/admin"

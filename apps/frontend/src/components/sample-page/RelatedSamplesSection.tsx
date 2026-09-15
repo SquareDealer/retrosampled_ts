@@ -5,6 +5,7 @@ import { useAudioContextManager } from "../AudioContextManager";
 import { WaveformFromJsonForSample } from "../waveform/WaveformFromJsonForSample";
 import { Sample } from "../../types/Sample";
 import { RelatedSamplesTree, SampleShort } from "../../types/sampleDetail";
+import { useLikeSample } from "../../hooks/useLikeSample";
 
 type FeedbackTone = "success" | "error";
 
@@ -12,11 +13,6 @@ type RelatedSamplesSectionProps = {
   relatedSamples: RelatedSamplesTree;
   onAddRemake?: () => void;
   onFeedback?: (tone: FeedbackTone, text: string) => void;
-};
-
-type LikeState = {
-  isLiked: boolean;
-  likesCount: number;
 };
 
 const formatLikes = (likesCount: number): string => {
@@ -50,19 +46,17 @@ const SectionLabel: React.FC<{ text: string }> = ({ text }) => {
 
 type RelatedSampleRowProps = {
   sample: SampleShort;
-  likesCount: number;
-  isLiked: boolean;
-  onToggleLike: (sampleId: string) => void;
+  onFeedback?: (tone: FeedbackTone, text: string) => void;
 };
 
-const RelatedSampleRow: React.FC<RelatedSampleRowProps> = ({
-  sample,
-  likesCount,
-  isLiked,
-  onToggleLike,
-}) => {
+const RelatedSampleRow: React.FC<RelatedSampleRowProps> = ({ sample, onFeedback }) => {
   const navigate = useNavigate();
   const { currentSample, state, play, seekTo, togglePlay } = useAudioContextManager();
+  const { isLiked, likesCount, toggle: toggleLike } = useLikeSample(
+    sample.id,
+    { isLiked: sample.isLiked, likesCount: sample.likesCount },
+    { onError: (message) => onFeedback?.("error", message) }
+  );
 
   const waveformRef = useRef<HTMLDivElement | null>(null);
   const [waveformWidth, setWaveformWidth] = useState(220);
@@ -169,7 +163,7 @@ const RelatedSampleRow: React.FC<RelatedSampleRowProps> = ({
 
   const handleLike = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
-    onToggleLike(sample.id);
+    void toggleLike();
   };
 
   return (
@@ -297,67 +291,6 @@ export const RelatedSamplesSection: React.FC<RelatedSamplesSectionProps> = ({
   onAddRemake,
   onFeedback,
 }) => {
-  const allRelatedSamples = useMemo(() => {
-    const items: SampleShort[] = [];
-
-    if (relatedSamples.rootOriginal) {
-      items.push(relatedSamples.rootOriginal);
-    }
-
-    if (relatedSamples.inheritedOriginal) {
-      items.push(relatedSamples.inheritedOriginal);
-    }
-
-    items.push(...relatedSamples.remakes);
-    return items;
-  }, [relatedSamples]);
-
-  const [likesById, setLikesById] = useState<Record<string, LikeState>>({});
-
-  useEffect(() => {
-    const nextState: Record<string, LikeState> = {};
-
-    allRelatedSamples.forEach((sample) => {
-      nextState[sample.id] = {
-        isLiked: sample.isLiked,
-        likesCount: sample.likesCount,
-      };
-    });
-
-    setLikesById(nextState);
-  }, [allRelatedSamples]);
-
-  const toggleLike = (sampleId: string) => {
-    setLikesById((current) => {
-      const existing = current[sampleId];
-      if (!existing) {
-        return current;
-      }
-
-      const nextLiked = !existing.isLiked;
-      const nextCount = nextLiked
-        ? existing.likesCount + 1
-        : Math.max(0, existing.likesCount - 1);
-
-      return {
-        ...current,
-        [sampleId]: {
-          isLiked: nextLiked,
-          likesCount: nextCount,
-        },
-      };
-    });
-  };
-
-  const getLikeState = (sample: SampleShort): LikeState => {
-    return (
-      likesById[sample.id] ?? {
-        isLiked: sample.isLiked,
-        likesCount: sample.likesCount,
-      }
-    );
-  };
-
   const handleAddRemake = () => {
     if (onAddRemake) {
       onAddRemake();
@@ -374,22 +307,14 @@ export const RelatedSamplesSection: React.FC<RelatedSamplesSectionProps> = ({
       {relatedSamples.rootOriginal ? (
         <div className="related-samples__group">
           <SectionLabel text="root og" />
-          <RelatedSampleRow
-            sample={relatedSamples.rootOriginal}
-            {...getLikeState(relatedSamples.rootOriginal)}
-            onToggleLike={toggleLike}
-          />
+          <RelatedSampleRow sample={relatedSamples.rootOriginal} onFeedback={onFeedback} />
         </div>
       ) : null}
 
       {relatedSamples.inheritedOriginal ? (
         <div className="related-samples__group">
           <SectionLabel text="inherited og" />
-          <RelatedSampleRow
-            sample={relatedSamples.inheritedOriginal}
-            {...getLikeState(relatedSamples.inheritedOriginal)}
-            onToggleLike={toggleLike}
-          />
+          <RelatedSampleRow sample={relatedSamples.inheritedOriginal} onFeedback={onFeedback} />
         </div>
       ) : null}
 
@@ -398,12 +323,7 @@ export const RelatedSamplesSection: React.FC<RelatedSamplesSectionProps> = ({
 
         {relatedSamples.remakes.length > 0 ? (
           relatedSamples.remakes.map((sample) => (
-            <RelatedSampleRow
-              key={sample.id}
-              sample={sample}
-              {...getLikeState(sample)}
-              onToggleLike={toggleLike}
-            />
+            <RelatedSampleRow key={sample.id} sample={sample} onFeedback={onFeedback} />
           ))
         ) : (
           <p className="related-samples__empty">No remakes yet. Be the first to add one.</p>

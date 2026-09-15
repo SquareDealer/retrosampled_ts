@@ -1,5 +1,7 @@
 import 'dotenv/config';
+import { resolve } from 'path';
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as cookieParser from 'cookie-parser';
@@ -14,7 +16,7 @@ function parseCorsOrigins(raw: string | undefined): string[] {
 }
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const configService = app.get(ConfigService);
 
   app.enableCors({
@@ -22,6 +24,15 @@ async function bootstrap() {
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
   });
+
+  // Local storage driver: serve ./uploads at /uploads/ (CORS is applied
+  // above, so the Vite origin can fetch audio and peaks JSON).
+  if ((configService.get<string>('STORAGE_DRIVER') ?? 'local') === 'local') {
+    app.useStaticAssets(resolve(configService.get<string>('LOCAL_STORAGE_DIR') ?? './uploads'), {
+      prefix: '/uploads/',
+      maxAge: '1h',
+    });
+  }
 
   app.use(cookieParser());
 

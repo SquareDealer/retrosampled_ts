@@ -1,4 +1,4 @@
-import type { CreatorRole } from '../enums';
+import type { CreatorRole, SampleStatus } from '../enums';
 
 /**
  * Compact sample shape consumed by the feed, rows and the audio player.
@@ -22,6 +22,14 @@ export interface Sample {
   remakesCount?: number;
   remakes?: Sample[];
   jsonPeaksUrl?: string;
+  /** Present on rows served by the real API (Task 3.1a). */
+  status?: SampleStatus;
+  authorUsername?: string;
+  coverUrl?: string;
+  downloadsCount?: number;
+  playsCount?: number;
+  createdAt?: string;
+  publishedAt?: string | null;
 }
 
 export type SampleAuthor = {
@@ -110,4 +118,25 @@ export type SampleDetail = {
   waveformData?: number[];
   duration?: number;
   relatedSamples: RelatedSamplesTree;
+
+  // --- fields added by the real API (Task 3.1a); optional so the mock engine
+  // and older fixtures keep compiling. The frontend gates edit/delete with
+  // `can(actor, 'sample:edit', { kind: 'sample', ownerId, status, collaboratorIds })`.
+  ownerId?: string;
+  ownerUsername?: string;
+  status?: SampleStatus;
+  collaboratorIds?: string[];
+  description?: string | null;
+  sampleType?: string | null;
+  processingError?: string | null;
+  parentId?: string | null;
+  rootId?: string;
+  audioMime?: string | null;
+  audioSizeBytes?: number | null;
+  downloadsCount?: number;
+  playsCount?: number;
+  remakesCount?: number;
+  commentsCount?: number;
+  createdAt?: string;
+  publishedAt?: string | null;
 };
