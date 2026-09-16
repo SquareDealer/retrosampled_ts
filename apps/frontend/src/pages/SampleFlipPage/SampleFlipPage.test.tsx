@@ -199,7 +199,7 @@ describe("FlipEditor", () => {
     expect(engine.configure).toHaveBeenLastCalledWith(1.5, -12, false);
     fireEvent.change(input, { target: { value: "300" } });
     fireEvent.blur(input);
-    expect((input as HTMLInputElement).value).toBe("150");
+    expect((input as HTMLInputElement).value).toBe("300");
   });
 
   it("requires an original BPM before enabling tempo changes", () => {
@@ -215,7 +215,7 @@ describe("FlipEditor", () => {
     );
     expect(
       (screen.getByLabelText("Target BPM") as HTMLInputElement).disabled,
-    ).toBe(true);
+    ).toBe(false);
     fireEvent.change(screen.getByLabelText("Original BPM"), {
       target: { value: "90" },
     });

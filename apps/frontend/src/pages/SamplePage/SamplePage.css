@@ -105,7 +105,10 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: color 0.15s ease, background-color 0.15s ease, transform 0.12s ease;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease,
+    transform 0.12s ease;
 }
 
 .sample-actions-bar__button:hover {
@@ -190,9 +193,17 @@
   cursor: pointer;
 }
 
-.sample-page__flip:hover { background: #b4e29a15; }
-.sample-page__flip:focus-visible { outline: 2px solid var(--sample-focus); outline-offset: 3px; }
-.sample-page__flip:disabled { opacity: .4; cursor: default; }
+.sample-page__flip:hover {
+  background: #b4e29a15;
+}
+.sample-page__flip:focus-visible {
+  outline: 2px solid var(--sample-focus);
+  outline-offset: 3px;
+}
+.sample-page__flip:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
 
 .sample-header {
   display: flex;
@@ -309,7 +320,9 @@
   font-size: 12px;
   padding: 6px 11px;
   cursor: pointer;
-  transition: transform 0.1s ease, background-color 0.15s ease;
+  transition:
+    transform 0.1s ease,
+    background-color 0.15s ease;
 }
 
 .sample-tags__chip:hover:not(:disabled) {
@@ -550,7 +563,10 @@
   justify-content: center;
   gap: 8px;
   cursor: pointer;
-  transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease,
+    background-color 0.15s ease;
 }
 
 .related-samples__add-remake:hover {
@@ -619,7 +635,10 @@
   text-align: center;
   gap: clamp(var(--space-2), 1.4vw, var(--space-3));
   cursor: pointer;
-  transition: transform 0.14s ease, background-color 0.15s ease, color 0.15s ease;
+  transition:
+    transform 0.14s ease,
+    background-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .creators-card:hover {
@@ -735,7 +754,10 @@
   padding: 0 var(--space-4);
   margin-top: auto;
   cursor: pointer;
-  transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease,
+    background-color 0.15s ease;
 }
 
 .creators-card__follow:hover:not(:disabled) {

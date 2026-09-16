@@ -12,6 +12,7 @@ type Voice = {
 
 /** One source at a time; each trigger gets a fresh DSP queue to avoid old audio leaking into the new cue. */
 export class FlipAudioEngine {
+  private readonly output: GainNode;
   private voice: Voice | null = null;
   private retired = new Map<Voice, ReturnType<typeof setTimeout>>();
   private frame = 0;
@@ -31,9 +32,36 @@ export class FlipAudioEngine {
 
   constructor(
     private context: AudioContext,
-    readonly buffer: AudioBuffer,
+    private sourceBuffer: AudioBuffer,
     private Processor: typeof SoundTouchNode,
-  ) {}
+  ) {
+    this.output = context.createGain();
+    this.output.connect(context.destination);
+  }
+
+  get audioContext() {
+    return this.context;
+  }
+  get outputNode() {
+    return this.output;
+  }
+  get buffer() {
+    return this.sourceBuffer;
+  }
+
+  setBuffer(buffer: AudioBuffer) {
+    this.stop(false);
+    // Switching sources must leave no old voice in the resampling bus.
+    for (const [voice, timer] of this.retired) {
+      clearTimeout(timer);
+      this.disconnect(voice);
+    }
+    this.retired.clear();
+    this.sourceBuffer = buffer;
+    this.reversed = null;
+    this.rate = 1;
+    this.pitch = 0;
+  }
 
   static async load(
     url: string,
@@ -174,7 +202,7 @@ export class FlipAudioEngine {
       silence.connect(processor);
       silence.start();
       processor.connect(gain);
-      gain.connect(this.context.destination);
+      gain.connect(this.output);
       this.voice = { source, silence, processor, gain };
       processor.onprocessorerror = () => {
         if (this.voice?.processor !== processor) return;
@@ -278,6 +306,7 @@ export class FlipAudioEngine {
     this.reversed = null;
     this.onChange = () => {};
     this.onError = () => {};
+    this.output.disconnect();
     void this.context.close();
   }
 }

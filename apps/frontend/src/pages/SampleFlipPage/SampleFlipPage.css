@@ -151,6 +151,112 @@
   flex-wrap: wrap;
   gap: 10px;
 }
+.flip-record {
+  color: #ff8f8f;
+  border-color: #ff8f8f;
+}
+.flip-record:hover {
+  background: #ff8f8f18;
+}
+.flip-record--active {
+  color: #fff;
+  background: #d94d4d;
+  border-color: #ff8f8f;
+  box-shadow: 0 0 18px #ff5d5d88;
+}
+.flip-record-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.flip-record--active .flip-record-dot {
+  animation: flip-record-pulse 1s ease-in-out infinite;
+}
+@keyframes flip-record-pulse {
+  50% {
+    opacity: 0.35;
+    transform: scale(0.75);
+  }
+}
+.flip-record-status {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 24px;
+  margin-top: 14px;
+  color: #a8aab4;
+  font-size: 12px;
+}
+.flip-record-status--active {
+  color: #ffb0b0;
+}
+.flip-beats {
+  display: inline-flex;
+  gap: 5px;
+}
+.flip-beats i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #555762;
+}
+.flip-beats i.flip-beat--active {
+  background: #ff8f8f;
+  box-shadow: 0 0 8px #ff8f8f;
+}
+.flip-takes {
+  margin: 26px 0 4px;
+}
+.flip-take-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 12px;
+}
+.flip-take {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid #ffffff26;
+  border-radius: 8px;
+  color: #f3f1e9;
+  background: #18191d;
+  text-align: left;
+  cursor: pointer;
+}
+.flip-take:hover {
+  border-color: #ffffff66;
+}
+.flip-take--active {
+  border-color: #b4e29a;
+  background: #b4e29a12;
+  box-shadow: 0 0 16px #b4e29a2b;
+}
+.flip-take:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.flip-take-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+}
+.flip-take-heading span,
+.flip-take-tempo {
+  color: #a8aab4;
+  font:
+    11px ui-monospace,
+    monospace;
+}
+.flip-take-wave {
+  margin: 12px 0 9px;
+  overflow: hidden;
+}
+.flip-take-tempo {
+  display: block;
+}
 .flip-button {
   cursor: pointer;
   border: 1px solid #ffffff35;

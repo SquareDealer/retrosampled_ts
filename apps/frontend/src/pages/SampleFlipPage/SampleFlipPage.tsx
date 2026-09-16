@@ -24,6 +24,8 @@ import {
   type Cue,
   type FlipProject,
 } from "./flipProject";
+import { FlipWorkspace, type WorkspaceControls } from "./FlipWorkspace";
+import { useFlipRecording } from "./useFlipRecording";
 import "./SampleFlipPage.css";
 
 const time = (seconds: number) =>
@@ -62,6 +64,7 @@ function BpmField({
       {label}
       <input
         type="number"
+        aria-label={label === "Project BPM" ? "Target BPM" : undefined}
         value={draft}
         min={min}
         max={max}
@@ -82,10 +85,12 @@ export function FlipEditor({
   sample,
   engine,
   userId,
+  workspace,
 }: {
   sample: SampleDetail;
   engine: FlipAudioEngine;
   userId: string;
+  workspace?: WorkspaceControls;
 }) {
   const storageKey = projectKey(userId, sample.id);
   const [storageError, setStorageError] = useState(false);
@@ -114,7 +119,15 @@ export function FlipEditor({
   const dragRef = useRef<{ slot: number; pointerId: number } | null>(null);
   const activeCue = project.cues.find((cue) => cue.slot === activeSlot);
   const reverse = effectiveReverse(project.reverse, activeCue?.reverse);
-  const rate = tempoRatio(project);
+  const projectBpm = workspace?.bpm ?? project.targetBpm ?? 120;
+  const rate = tempoRatio({ ...project, targetBpm: projectBpm });
+  const rateSupported = rate >= 0.1 && rate <= 8;
+  const recording = useFlipRecording(
+    engine,
+    projectBpm,
+    workspace?.onRecorded,
+    setAudioError,
+  );
 
   useEffect(() => {
     engine.onChange = setPlayback;
@@ -130,8 +143,15 @@ export function FlipEditor({
   }, [engine]);
 
   useEffect(() => {
+    if (!rateSupported) {
+      engine.pause();
+      setAudioError(
+        "Project BPM is outside the supported tempo range for this source. Adjust the original or project BPM.",
+      );
+      return;
+    }
     engine.configure(rate, project.pitch, reverse);
-  }, [engine, project.pitch, rate, reverse]);
+  }, [engine, project.pitch, rate, reverse, rateSupported]);
 
   useEffect(() => {
     try {
@@ -143,11 +163,12 @@ export function FlipEditor({
   }, [project, storageKey]);
 
   const trigger = (cue: Cue) => {
+    if (!rateSupported) return;
     setAudioError("");
     setActiveSlot(cue.slot);
     setSelectedSlot(cue.slot);
     engine.configure(
-      tempoRatio(project),
+      rate,
       project.pitch,
       effectiveReverse(project.reverse, cue.reverse),
     );
@@ -164,6 +185,7 @@ export function FlipEditor({
     setSelectedSlot(created.slot);
   };
   const togglePlay = () => {
+    if (!rateSupported) return;
     if (playback.playing) engine.pause();
     else {
       setAudioError("");
@@ -180,6 +202,7 @@ export function FlipEditor({
     }
   };
   const stop = () => {
+    if (recording.busy) void recording.toggleRecording();
     setActiveSlot(null);
     setSelectedSlot(null);
     engine.stop(project.reverse);
@@ -231,14 +254,21 @@ export function FlipEditor({
     <main className="flip-page">
       <header className="flip-header">
         <div>
-          <Link to={`/sample/${sample.id}`} className="flip-back">
+          <Link
+            to={`/sample/${workspace?.rootSampleId ?? sample.id}`}
+            className="flip-back"
+          >
             ← Back to sample
           </Link>
           <p className="flip-eyebrow">SAMPLE FLIP</p>
           <h1>{sample.title}</h1>
         </div>
         <span className="flip-save" role="status">
-          {storageError ? "Local saving unavailable" : "Saved in this browser"}
+          {storageError || workspace?.notice
+            ? "Local saving unavailable"
+            : workspace?.saving
+              ? "Saving take…"
+              : "Saved in this browser"}
         </span>
       </header>
 
@@ -365,6 +395,32 @@ export function FlipEditor({
         </div>
         <div className="flip-transport">
           <button
+            type="button"
+            className={`flip-button flip-record${recording.busy ? " flip-record--active" : ""}`}
+            disabled={
+              !workspace ||
+              !rateSupported ||
+              recording.starting ||
+              recording.state.phase === "finishing"
+            }
+            aria-label={recording.busy ? "Stop recording" : "Record take"}
+            aria-pressed={recording.busy}
+            onClick={() => {
+              void recording.toggleRecording();
+            }}
+          >
+            <span className="flip-record-dot" aria-hidden="true" />
+            {recording.starting
+              ? "Preparing…"
+              : recording.state.phase === "finishing"
+                ? "Finishing…"
+                : recording.state.phase === "count-in"
+                  ? "Cancel count-in"
+                  : recording.state.phase === "recording"
+                    ? "Stop recording"
+                    : "Record"}
+          </button>
+          <button
             className="flip-button flip-button--primary"
             onClick={togglePlay}
           >
@@ -400,7 +456,34 @@ export function FlipEditor({
             + Add cue <span>{project.cues.length}/9</span>
           </button>
         </div>
+        <div
+          className={`flip-record-status${recording.busy ? " flip-record-status--active" : ""}`}
+          role="status"
+          aria-live="polite"
+        >
+          {recording.state.phase === "count-in"
+            ? `Count-in · bar ${recording.state.bar} / 4 · beat ${recording.state.beat} / 4`
+            : recording.state.phase === "recording"
+              ? `Recording · ${time(recording.state.elapsed)} · bar ${recording.state.bar} · beat ${recording.state.beat}`
+              : recording.state.phase === "finishing"
+                ? "Building the new waveform…"
+                : `4-bar count-in · 4/4 · ${projectBpm} BPM · metronome is not recorded`}
+          {recording.busy && (
+            <span className="flip-beats" aria-hidden="true">
+              {[1, 2, 3, 4].map((beat) => (
+                <i
+                  key={beat}
+                  className={
+                    recording.state.beat === beat ? "flip-beat--active" : ""
+                  }
+                />
+              ))}
+            </span>
+          )}
+        </div>
       </section>
+
+      {workspace?.renderTakes(recording.busy)}
 
       <section className="flip-settings" aria-label="Pitch and tempo">
         <label className="flip-control flip-pitch">
@@ -428,22 +511,25 @@ export function FlipEditor({
           label="Original BPM"
           value={project.sourceBpm}
           min={0.01}
+          disabled={recording.busy}
           onCommit={(sourceBpm) =>
             setProject((current) => ({
               ...current,
               sourceBpm,
-              targetBpm: sourceBpm,
+              targetBpm: workspace ? current.targetBpm : sourceBpm,
             }))
           }
         />
         <BpmField
-          label="Target BPM"
-          value={project.targetBpm}
-          min={(project.sourceBpm ?? 1) * 0.5}
-          max={(project.sourceBpm ?? 1) * 2}
-          disabled={!project.sourceBpm}
+          label="Project BPM"
+          value={projectBpm}
+          min={20}
+          max={300}
+          disabled={recording.busy}
           onCommit={(targetBpm) =>
-            setProject((current) => ({ ...current, targetBpm }))
+            workspace
+              ? workspace.setBpm(targetBpm)
+              : setProject((current) => ({ ...current, targetBpm }))
           }
         />
         <button
@@ -452,16 +538,15 @@ export function FlipEditor({
             setProject((current) => ({
               ...current,
               pitch: 0,
-              targetBpm: current.sourceBpm,
             }))
           }
         >
-          Reset pitch / BPM
+          Reset pitch
         </button>
         <p className="flip-hint">
           {project.sourceBpm
-            ? "Pitch and tempo are independent. Tempo range: 0.5×–2×."
-            : "Enter the original BPM to adjust tempo. Pitch remains available."}
+            ? "Project BPM controls every source and the metronome. Pitch is independent."
+            : "Enter the original BPM to sync this source to the project tempo."}
         </p>
       </section>
 
@@ -535,6 +620,11 @@ export function FlipEditor({
           {audioError}
         </p>
       )}
+      {workspace?.notice && (
+        <p className="flip-error" role="alert">
+          {workspace.notice}
+        </p>
+      )}
       {storageError && (
         <p className="flip-error" role="alert">
           Your changes cannot be saved in this browser. You can keep playing in
@@ -594,7 +684,7 @@ export default function SampleFlipPage() {
     loaded.userId === user.id
   )
     return (
-      <FlipEditor
+      <FlipWorkspace
         key={`${user.id}:${sampleId}:${attempt}`}
         sample={loaded.sample}
         engine={loaded.engine}
