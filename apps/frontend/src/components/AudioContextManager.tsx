@@ -32,6 +32,8 @@ export interface PlayerState {
 }
 
 export interface AudioContextManager {
+  isEditorActive: boolean;
+  acquireEditorSession: () => () => void;
   state: PlayerState;
   currentSample: Sample | null;
 
@@ -84,6 +86,8 @@ export const AudioManagerProvider: React.FC<PropsWithChildren> = ({ children }) 
   const currentIdRef = useRef<string | null>(null);
   const playbackSessionRef = useRef(0);
   const queueRef = useRef<Sample[]>([]);
+  const editorSessionsRef = useRef(new Set<symbol>());
+  const [isEditorActive, setIsEditorActive] = useState(false);
   // Ссылка на актуальный play, чтобы колбэки Howl не держали устаревшее замыкание
   const playRef = useRef<AudioContextManager["play"]>(() => {});
 
@@ -139,6 +143,24 @@ export const AudioManagerProvider: React.FC<PropsWithChildren> = ({ children }) 
     }
   }, []);
 
+  const acquireEditorSession = useCallback(() => {
+    const token = Symbol('flip');
+    editorSessionsRef.current.add(token);
+    setIsEditorActive(true);
+    playbackSessionRef.current += 1;
+    stopProgressLoop();
+    howlRef.current?.off();
+    howlRef.current?.unload();
+    howlRef.current = null;
+    currentIdRef.current = null;
+    setCurrentSample(null);
+    setState((previous) => ({ ...previous, currentId: null, isPlaying: false, isReady: false, progress: 0 }));
+    return () => {
+      editorSessionsRef.current.delete(token);
+      setIsEditorActive(editorSessionsRef.current.size > 0);
+    };
+  }, [stopProgressLoop]);
+
   // ─────────────────────────────────────────────────────────────
   // Cleanup on Unmount
   // ─────────────────────────────────────────────────────────────
@@ -162,6 +184,7 @@ export const AudioManagerProvider: React.FC<PropsWithChildren> = ({ children }) 
 
   const play = useCallback(
     (sample: Sample, options?: number | PlayOptions) => {
+      if (editorSessionsRef.current.size) return;
       const opts: PlayOptions =
         typeof options === "number" ? { startProgress: options } : options ?? {};
       const newId = sample.id.toString();
@@ -333,6 +356,7 @@ export const AudioManagerProvider: React.FC<PropsWithChildren> = ({ children }) 
   playRef.current = play;
 
   const togglePlay = useCallback(() => {
+    if (editorSessionsRef.current.size) return;
     const howl = howlRef.current;
     if (!howl || !state.isReady) return;
 
@@ -355,6 +379,7 @@ export const AudioManagerProvider: React.FC<PropsWithChildren> = ({ children }) 
 
   const seekTo = useCallback(
     (progress: number) => {
+      if (editorSessionsRef.current.size) return;
       const howl = howlRef.current;
       if (!howl || !state.isReady) return;
 
@@ -411,6 +436,8 @@ export const AudioManagerProvider: React.FC<PropsWithChildren> = ({ children }) 
   const hasPrev = currentIndex > 0;
 
   const value: AudioContextManager = {
+    isEditorActive,
+    acquireEditorSession,
     state,
     currentSample,
     play,

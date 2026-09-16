@@ -153,6 +153,9 @@ importers:
       '@retrosampled/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@soundtouchjs/audio-worklet':
+        specifier: 2.1.1
+        version: 2.1.1
       howler:
         specifier: ^2.2.4
         version: 2.2.4
@@ -1144,6 +1147,18 @@ packages:
   '@smithy/types@4.18.0':
     resolution: {integrity: sha512-CgB6HHWer/vrKps24ulRIbpcpb7K4xAU7SkZ7YHzBPlwHsvsrCJFEXK421s+cJzX+ZrqtA/TuU5w1HzI7k9N8A==}
     engines: {node: '>=18.0.0'}
+
+  '@soundtouchjs/audio-worklet@2.1.1':
+    resolution: {integrity: sha512-itxSW62gbtDKoFo6eEr4PXzVz3oF+wCVREupFi5JiUR31tWWwCizr+2XezYD1SnkrSDfdmZvvviTtoyejYeD0Q==}
+
+  '@soundtouchjs/core@2.1.1':
+    resolution: {integrity: sha512-ccBiG9/zHdM1Sx1RUkXWBgRYFI1HCiUHHwRK8gAvVNgmcafBgUzRP6Czn7pUPcHgSQus+i3Eu3DlfBR24wqspA==}
+
+  '@soundtouchjs/interpolation-strategy-lanczos@2.1.1':
+    resolution: {integrity: sha512-EX4qVLnOJ9pKfL7iSPJSJDKDAoZ4d7JO7KTKMPVo2XIhlmT/2hTZC5dWL/R9Jv3XC7kyQeteeGcogWP6DPi47A==}
+
+  '@soundtouchjs/worklet-base@2.1.1':
+    resolution: {integrity: sha512-H/QMyW8yB91WX1CVSVCeOXNPdv1m71Zi0KQlvcX3f+159GNUo8kckmXV0cHpni9SCqVhCHMS/lapbBKl4tc6nQ==}
 
   '@testing-library/dom@10.4.2':
     resolution: {integrity: sha512-yzr2S9HyAIdhz2/6qHgbs665Q7PKVcDF05vsOlHPxG1mo36gKVesdYVeDLnXgfjJ03CrKRk08knc6+E/9m8v2Q==}
@@ -5199,6 +5214,22 @@ snapshots:
   '@smithy/types@4.18.0':
     dependencies:
       tslib: 2.8.1
+
+  '@soundtouchjs/audio-worklet@2.1.1':
+    dependencies:
+      '@soundtouchjs/core': 2.1.1
+      '@soundtouchjs/interpolation-strategy-lanczos': 2.1.1
+      '@soundtouchjs/worklet-base': 2.1.1
+
+  '@soundtouchjs/core@2.1.1':
+    dependencies:
+      '@soundtouchjs/interpolation-strategy-lanczos': 2.1.1
+
+  '@soundtouchjs/interpolation-strategy-lanczos@2.1.1': {}
+
+  '@soundtouchjs/worklet-base@2.1.1':
+    dependencies:
+      '@soundtouchjs/core': 2.1.1
 
   '@testing-library/dom@10.4.2':
     dependencies:

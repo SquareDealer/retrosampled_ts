@@ -19,6 +19,7 @@ const clamp01 = (value: number) => Math.max(0, Math.min(1, value));
 
 export const MiniPlayer: React.FC = () => {
   const {
+    isEditorActive,
     state,
     currentSample,
     togglePlay,
@@ -31,7 +32,7 @@ export const MiniPlayer: React.FC = () => {
   } = useAudioContextManager();
   const lastVolumeRef = useRef(1);
 
-  if (!currentSample) return null;
+  if (!currentSample || isEditorActive) return null;
 
   const { progress, duration, isPlaying, isReady, volume } = state;
   const hasDuration = duration > 0;

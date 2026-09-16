@@ -177,6 +177,23 @@
   cursor: not-allowed;
 }
 
+.sample-page__flip {
+  justify-self: start;
+  width: fit-content;
+  padding: 10px 16px;
+  border: 1px solid #b4e29a;
+  border-radius: 6px;
+  background: transparent;
+  color: #b4e29a;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.sample-page__flip:hover { background: #b4e29a15; }
+.sample-page__flip:focus-visible { outline: 2px solid var(--sample-focus); outline-offset: 3px; }
+.sample-page__flip:disabled { opacity: .4; cursor: default; }
+
 .sample-header {
   display: flex;
   flex-direction: column;

@@ -13,6 +13,7 @@ import AdminPage from './pages/AdminPage/AdminPage';
 import UploadPage from './pages/UploadPage/UploadPage';
 import RemakePage from './pages/RemakePage/RemakePage';
 import SampleEditPage from './pages/SampleEditPage/SampleEditPage';
+import SampleFlipPage from './pages/SampleFlipPage/SampleFlipPage';
 import ProfilePage from './pages/ProfilePage/ProfilePage';
 import FollowListPage from './pages/FollowListPage/FollowListPage';
 import NotificationsPage from './pages/NotificationsPage/NotificationsPage';
@@ -115,6 +116,7 @@ function App() {
           />
           <Route path="/library" element={<LibraryPage />} />
           <Route path="/sample/:sampleId" element={<SamplePage />} />
+          <Route path="/sample/:sampleId/flip" element={<RequireAuth><SampleFlipPage /></RequireAuth>} />
           <Route
             path="/sample/:sampleId/edit"
             element={

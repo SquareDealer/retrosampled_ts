@@ -692,6 +692,21 @@ const SamplePage: React.FC = () => {
 
           <SampleMeta bpm={sample.bpm} musicalKey={sample.musicalKey} />
 
+          <button
+            type="button"
+            className="sample-page__flip"
+            disabled={!sample.audioPreviewUrl}
+            onClick={() => {
+              if (authStatus !== "authenticated") {
+                openAuthModal("login");
+                return;
+              }
+              navigate(`/sample/${sample.id}/flip`);
+            }}
+          >
+            Flip sample ↗
+          </button>
+
           <SampleTags
             tags={sample.tags}
             onTagClick={(tag) => {
