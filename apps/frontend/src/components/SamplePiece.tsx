@@ -3,6 +3,9 @@ import { Link } from "react-router-dom";
 import { WaveformFromJsonForSample } from "./waveform/WaveformFromJsonForSample";
 import { useAudioContextManager } from "./AudioContextManager";
 import { Sample } from "../types/Sample";
+import avatarImage from "../assets/img/avatar.png";
+import playIcon from "../assets/img/play_icon.png";
+import pauseIcon from "../assets/img/pause_icon.png";
 import "./SampleRow.css";
 
 interface SamplePieceProps {
@@ -123,7 +126,7 @@ export const SamplePiece: React.FC<SamplePieceProps> = ({
 
         <img
           className="sample-row__avatar"
-          src="/img/avatar.jpg" // Placeholder avatar
+          src={avatarImage} // Placeholder avatar
           alt={authorName}
         />
 
@@ -156,7 +159,7 @@ export const SamplePiece: React.FC<SamplePieceProps> = ({
           <button className="sample-row__play" onClick={handlePlayClick}>
             <img 
                 className="sample-row__play-icon" 
-                src={isPlaying ? "/img/pause_icon.png" : "/img/play_icon.png"} 
+                src={isPlaying ? pauseIcon : playIcon}
                 alt={isPlaying ? "Pause" : "Play"} 
             />
           </button>

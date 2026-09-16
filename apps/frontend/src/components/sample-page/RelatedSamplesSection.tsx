@@ -5,6 +5,9 @@ import { useAudioContextManager } from "../AudioContextManager";
 import { WaveformFromJsonForSample } from "../waveform/WaveformFromJsonForSample";
 import { Sample } from "../../types/Sample";
 import { RelatedSamplesTree, SampleShort } from "../../types/sampleDetail";
+import avatarImage from "../../assets/img/avatar.png";
+import playIcon from "../../assets/img/play_icon.png";
+import pauseIcon from "../../assets/img/pause_icon.png";
 
 type FeedbackTone = "success" | "error";
 
@@ -190,7 +193,7 @@ const RelatedSampleRow: React.FC<RelatedSampleRowProps> = ({
       <div className="sample-row__left related-samples__left">
         <img
           className="sample-row__avatar related-samples__avatar"
-          src="/img/avatar.jpg"
+          src={avatarImage}
           alt={sample.author}
         />
 
@@ -233,7 +236,7 @@ const RelatedSampleRow: React.FC<RelatedSampleRowProps> = ({
           >
             <img
               className="sample-row__play-icon"
-              src={isPlaying ? "/img/pause_icon.png" : "/img/play_icon.png"}
+              src={isPlaying ? pauseIcon : playIcon}
               alt={isPlaying ? "Pause" : "Play"}
             />
           </button>

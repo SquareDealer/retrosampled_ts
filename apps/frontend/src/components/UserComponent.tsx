@@ -1,4 +1,8 @@
 import React from 'react';
+import avatarImage from '../assets/img/avatar.png';
+import xIcon from '../assets/img/socials/x.png';
+import instagramIcon from '../assets/img/socials/instagram.png';
+import youtubeIcon from '../assets/img/socials/youtube.png';
 
 export type UserProfile = {
   nickname: string;
@@ -111,9 +115,9 @@ const UserSocialsInfo: React.FC<UserSocialsProps> = ({ socials }) => {
 
   const getSocialIcon = (platform: string): string => {
     const iconMap: Record<string, string> = {
-      twitter: '/img/socials/x.png',
-      instagram: '/img/socials/instagram.png',
-      youtube: '/img/socials/youtube.png'
+      twitter: xIcon,
+      instagram: instagramIcon,
+      youtube: youtubeIcon
     };
     return iconMap[platform] || '';
   };
@@ -160,7 +164,7 @@ interface UserPageProps {
 
 const UserComponent: React.FC<UserPageProps> = ({ user, onFollow, onSubscribe }) => {
   const { 
-    avatarUrl = "/img/avatar.jpg", 
+    avatarUrl = avatarImage,
     nickname = "squaredealer", 
     bio = "Sound designer & music producer based in Tokyo. Creating retro-inspired samples for your next hit.",
     followers = 1205,
