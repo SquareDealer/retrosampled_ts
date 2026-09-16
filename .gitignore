@@ -52,3 +52,17 @@ out/
 **/.vitepress/cache
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# design-sync (Claude Design)
+.ds-sync/
+ds-bundle/
+.design-sync/.cache/
+.design-sync/learnings/
+.design-sync/node_modules
+
+# Local databases (Prisma / SQLite)
+dev.db*
+test.db*
+
+# Uploaded media (local storage driver)
+apps/backend/uploads/

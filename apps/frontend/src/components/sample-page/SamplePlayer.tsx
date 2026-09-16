@@ -1,6 +1,6 @@
 import React from "react";
 import { KeyboardEvent, useMemo } from "react";
-import { Sample } from "../../types/Sample";
+import { Sample } from "@retrosampled/shared";
 import { useAudioContextManager } from "../AudioContextManager";
 import { WaveformFromJsonForSample } from "../waveform/WaveformFromJsonForSample";
 import { WaveformBars } from "../waveform/WaveformBars";

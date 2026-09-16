@@ -2,10 +2,12 @@ import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { WaveformFromJsonForSample } from "./waveform/WaveformFromJsonForSample";
 import { useAudioContextManager } from "./AudioContextManager";
-import { Sample } from "../types/Sample";
+import { Sample } from "@retrosampled/shared";
 import { HeartIcon, PauseIcon, PlayIcon } from "./icons";
 import { useElementWidth } from "../hooks/useElementWidth";
+import { useLikeSample } from "../hooks/useLikeSample";
 import { formatCompactNumber } from "../utils/formatCompactNumber";
+import avatarImage from "../assets/img/avatar.png";
 import "./SampleRow.css";
 
 export type SamplePieceVariant = "default" | "compact" | "related";
@@ -24,10 +26,12 @@ interface SamplePieceProps {
   rowAction?: SamplePieceRowAction;
   /** When set, only the first N tags are shown, followed by a "+N" tag. */
   maxTags?: number;
-  /** Controlled like state. When `onLikeToggle` is absent, internal optimistic state is used. */
+  /** Controlled like state. When `onLikeToggle` is absent, `useLikeSample` (API-backed) is used. */
   isLiked?: boolean;
   likesCount?: number;
   onLikeToggle?: (id: string) => void;
+  /** Called with a readable message when the API like toggle fails (uncontrolled mode). */
+  onLikeError?: (message: string) => void;
   showLikes?: boolean;
   /** Defaults: 50 (default), 40 (compact), 48 (related). */
   waveformHeight?: number;
@@ -76,6 +80,7 @@ export const SamplePiece: React.FC<SamplePieceProps> = ({
   isLiked: isLikedProp,
   likesCount: likesCountProp,
   onLikeToggle,
+  onLikeError,
   showLikes = true,
   waveformHeight: waveformHeightProp,
 }) => {
@@ -87,16 +92,19 @@ export const SamplePiece: React.FC<SamplePieceProps> = ({
   const isCompact = variant === "compact";
   const waveformHeight = waveformHeightProp ?? DEFAULT_WAVEFORM_HEIGHT[variant];
 
-  // Like state: controlled when `onLikeToggle` is provided, otherwise internal optimistic.
+  // Like state: controlled when `onLikeToggle` is provided, otherwise the shared
+  // API-backed optimistic hook (guests get the auth modal, failures roll back).
   const isControlledLike = typeof onLikeToggle === "function";
-  const [internalLiked, setInternalLiked] = React.useState(Boolean(sample.isLiked));
-  const [internalLikesCount, setInternalLikesCount] = React.useState<number>(() =>
-    getInitialLikesCount(sample)
+  const initialLikesCount = React.useMemo(() => getInitialLikesCount(sample), [sample]);
+  const apiLike = useLikeSample(
+    String(sample.id),
+    { isLiked: sample.isLiked, likesCount: initialLikesCount },
+    { onError: onLikeError }
   );
-  const isLiked = isControlledLike ? Boolean(isLikedProp) : internalLiked;
+  const isLiked = isControlledLike ? Boolean(isLikedProp) : apiLike.isLiked;
   const likesCount = isControlledLike
-    ? likesCountProp ?? getInitialLikesCount(sample)
-    : internalLikesCount;
+    ? likesCountProp ?? initialLikesCount
+    : apiLike.likesCount;
 
   const isCurrent = Boolean(currentSample) && String(currentSample?.id) === String(sample.id);
   const isPlaying = isCurrent && state.isPlaying;
@@ -173,12 +181,7 @@ export const SamplePiece: React.FC<SamplePieceProps> = ({
       return;
     }
 
-    setInternalLiked((prevLiked) => {
-      setInternalLikesCount((prevCount) =>
-        prevLiked ? Math.max(0, prevCount - 1) : prevCount + 1
-      );
-      return !prevLiked;
-    });
+    void apiLike.toggle();
   };
 
   const handleRemakesToggle = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -246,7 +249,7 @@ export const SamplePiece: React.FC<SamplePieceProps> = ({
 
           <img
             className="sample-row__avatar"
-            src="/img/avatar.jpg" // Placeholder avatar
+            src={avatarImage} // Placeholder avatar
             alt={authorName}
           />
 

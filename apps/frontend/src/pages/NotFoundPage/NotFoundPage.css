@@ -1,0 +1,28 @@
+.not-found {
+  display: flex;
+  min-height: 60vh;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 18px;
+}
+
+.not-found__code {
+  margin: 0;
+  color: #f4dd00;
+  font-size: clamp(72px, 18vw, 180px);
+  line-height: 0.85;
+  font-weight: 700;
+}
+
+.not-found__path {
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.not-found__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}

@@ -1,7 +1,7 @@
 import React from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
+import { RelatedSamplesTree, SampleShort } from "@retrosampled/shared";
 import SamplePiece from "../SamplePiece";
-import { RelatedSamplesTree, SampleShort } from "../../types/sampleDetail";
 
 type FeedbackTone = "success" | "error";
 
@@ -9,11 +9,6 @@ type RelatedSamplesSectionProps = {
   relatedSamples: RelatedSamplesTree;
   onAddRemake?: () => void;
   onFeedback?: (tone: FeedbackTone, text: string) => void;
-};
-
-type LikeState = {
-  isLiked: boolean;
-  likesCount: number;
 };
 
 const SectionLabel: React.FC<{ text: string }> = ({ text }) => {
@@ -40,52 +35,6 @@ export const RelatedSamplesSection: React.FC<RelatedSamplesSectionProps> = ({
     return items;
   }, [relatedSamples]);
 
-  const [likesById, setLikesById] = useState<Record<string, LikeState>>({});
-
-  useEffect(() => {
-    const nextState: Record<string, LikeState> = {};
-
-    allRelatedSamples.forEach((sample) => {
-      nextState[sample.id] = {
-        isLiked: sample.isLiked,
-        likesCount: sample.likesCount,
-      };
-    });
-
-    setLikesById(nextState);
-  }, [allRelatedSamples]);
-
-  const toggleLike = (sampleId: string) => {
-    setLikesById((current) => {
-      const existing = current[sampleId];
-      if (!existing) {
-        return current;
-      }
-
-      const nextLiked = !existing.isLiked;
-      const nextCount = nextLiked
-        ? existing.likesCount + 1
-        : Math.max(0, existing.likesCount - 1);
-
-      return {
-        ...current,
-        [sampleId]: {
-          isLiked: nextLiked,
-          likesCount: nextCount,
-        },
-      };
-    });
-  };
-
-  const getLikeState = (sample: SampleShort): LikeState => {
-    return (
-      likesById[sample.id] ?? {
-        isLiked: sample.isLiked,
-        likesCount: sample.likesCount,
-      }
-    );
-  };
-
   const handleAddRemake = () => {
     if (onAddRemake) {
       onAddRemake();
@@ -95,23 +44,22 @@ export const RelatedSamplesSection: React.FC<RelatedSamplesSectionProps> = ({
     onFeedback?.("success", "Remake creation flow will be available soon.");
   };
 
-  const renderRow = (sample: SampleShort) => {
-    const like = getLikeState(sample);
-
-    return (
-      <SamplePiece
-        key={sample.id}
-        sample={sample}
-        variant="related"
-        rowAction="open"
-        maxTags={3}
-        queue={allRelatedSamples}
-        isLiked={like.isLiked}
-        likesCount={like.likesCount}
-        onLikeToggle={toggleLike}
-      />
-    );
+  const handleLikeError = (message: string) => {
+    onFeedback?.("error", message);
   };
+
+  // Likes go through SamplePiece's API-backed hook; the section only supplies the queue.
+  const renderRow = (sample: SampleShort) => (
+    <SamplePiece
+      key={sample.id}
+      sample={sample}
+      variant="related"
+      rowAction="open"
+      maxTags={3}
+      queue={allRelatedSamples}
+      onLikeError={handleLikeError}
+    />
+  );
 
   return (
     <section className="related-samples" aria-label="Related samples">

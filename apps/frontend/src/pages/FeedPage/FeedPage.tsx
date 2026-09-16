@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { fetchSamples, SamplesAccessType, SamplesSort } from "../../api/samples";
+import { fetchSamples, SamplesSort } from "../../api/samples";
 import SamplePiece from "../../components/SamplePiece";
-import { Sample } from "../../types/Sample";
+import type { Sample } from "@retrosampled/shared";
 import "./FeedPage.css";
 
 const TAG_OPTIONS = ["lofi", "drums", "ambient", "synth", "chill", "retro", "80s"];
@@ -26,7 +26,6 @@ type FeedFilters = {
   bpmMin?: number;
   bpmMax?: number;
   musicalKey: string;
-  type: "all" | SamplesAccessType;
   sort: SamplesSort;
 };
 
@@ -50,14 +49,6 @@ const parseSort = (value: string | null): SamplesSort => {
   return "newest";
 };
 
-const parseType = (value: string | null): FeedFilters["type"] => {
-  if (value === "free" || value === "premium") {
-    return value;
-  }
-
-  return "all";
-};
-
 const getFiltersFromParams = (params: URLSearchParams): FeedFilters => {
   return {
     search: params.get("search") ?? "",
@@ -65,7 +56,6 @@ const getFiltersFromParams = (params: URLSearchParams): FeedFilters => {
     bpmMin: parseNumberParam(params.get("bpm_min")),
     bpmMax: parseNumberParam(params.get("bpm_max")),
     musicalKey: params.get("key") ?? "",
-    type: parseType(params.get("type")),
     sort: parseSort(params.get("sort")),
   };
 };
@@ -126,7 +116,6 @@ const FeedPage: React.FC<FeedPageProps> = ({ isAuthorized, onSignInClick }) => {
       if ("bpmMin" in updates) setParam(nextParams, "bpm_min", updates.bpmMin ?? undefined);
       if ("bpmMax" in updates) setParam(nextParams, "bpm_max", updates.bpmMax ?? undefined);
       if ("musicalKey" in updates) setParam(nextParams, "key", updates.musicalKey);
-      if ("type" in updates) setParam(nextParams, "type", updates.type === "all" ? "" : updates.type);
       if ("sort" in updates) setParam(nextParams, "sort", updates.sort === "newest" ? "" : updates.sort);
 
       setSearchParams(nextParams, { replace: false });
@@ -161,7 +150,6 @@ const FeedPage: React.FC<FeedPageProps> = ({ isAuthorized, onSignInClick }) => {
           bpm_min: filters.bpmMin,
           bpm_max: filters.bpmMax,
           key: filters.musicalKey || undefined,
-          type: filters.type === "all" ? undefined : filters.type,
           sort: filters.sort,
           cursor,
           limit: PAGE_LIMIT,
@@ -184,7 +172,7 @@ const FeedPage: React.FC<FeedPageProps> = ({ isAuthorized, onSignInClick }) => {
         }
       }
     },
-    [filters.bpmMax, filters.bpmMin, filters.musicalKey, filters.search, filters.sort, filters.type, isLikedLocked, tagsKey]
+    [filters.bpmMax, filters.bpmMin, filters.musicalKey, filters.search, filters.sort, isLikedLocked, tagsKey]
   );
 
   useEffect(() => {
@@ -244,7 +232,6 @@ const FeedPage: React.FC<FeedPageProps> = ({ isAuthorized, onSignInClick }) => {
       filters.bpmMin !== undefined ||
       filters.bpmMax !== undefined ||
       filters.musicalKey ||
-      filters.type !== "all" ||
       filters.sort !== "newest"
   );
 
@@ -333,19 +320,6 @@ const FeedPage: React.FC<FeedPageProps> = ({ isAuthorized, onSignInClick }) => {
                 {key}
               </option>
             ))}
-          </select>
-        </label>
-
-        <label className="feed-filter-group">
-          <span className="feed-filter-title">Type:</span>
-          <select
-            className="feed-select feed-select--compact"
-            value={filters.type}
-            onChange={(event) => updateFilters({ type: event.target.value as FeedFilters["type"] })}
-          >
-            <option value="all">All</option>
-            <option value="free">Free</option>
-            <option value="premium">Premium</option>
           </select>
         </label>
 

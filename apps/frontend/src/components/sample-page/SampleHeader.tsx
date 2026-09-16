@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { SampleAuthor } from "../../types/sampleDetail";
+import { SampleAuthor } from "@retrosampled/shared";
+import ogIcon from "../../assets/img/og_icon.png";
 
 type InheritedRef = {
   id: string;
@@ -30,7 +31,7 @@ export const SampleHeader: React.FC<SampleHeaderProps> = ({ title, inheritedFrom
       <h1 className="sample-header__title">
         <span className="sample-header__title-text">{title}</span>
         {isOgSample ? (
-          <img className="sample-header__og-icon" src="/icons/og_icon.png" alt="OG sample" />
+          <img className="sample-header__og-icon" src={ogIcon} alt="OG sample" />
         ) : null}
       </h1>
 

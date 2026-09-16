@@ -8,7 +8,7 @@ import React, {
   useEffect,
 } from "react";
 import { Howl, Howler } from "howler";
-import { Sample } from "../types/Sample";
+import { Sample } from "@retrosampled/shared";
 
 // Автоматически переходить к следующему семплу очереди по окончании трека
 const AUTO_ADVANCE = true;

@@ -1,20 +1,26 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Post,
   Req,
   Res,
-  UseGuards,
-  BadRequestException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Request, Response } from 'express';
-import { AuthService } from '../service/auth.service';
-import { SupabaseAuthGuard } from '../supabase-auth.guard';
+import { AuthService, AuthSession } from '../service/auth.service';
 import { RegisterDto } from '../dto/register.dto';
-import { SignInDto } from '../dto/singn-in.dto';
+import { LoginDto } from '../dto/login.dto';
+import { ChangePasswordDto } from '../dto/change-password.dto';
+import { DeleteAccountDto } from '../dto/delete-account.dto';
+import { Public } from '../../common/decorators/public.decorator';
+import { OptionalAuth } from '../../common/decorators/optional-auth.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { RequestUser } from '../../common/types/authenticated-request';
 import {
   getAccessTokenCookieOptions,
   getRefreshTokenCookieOptions,
@@ -27,194 +33,132 @@ export class AuthController {
     private readonly configService: ConfigService,
   ) {}
 
-  // Регистрация нового пользователя
+  private setSessionCookies(res: Response, session: AuthSession): void {
+    res.cookie(
+      'access_token',
+      session.accessToken,
+      getAccessTokenCookieOptions(this.configService, session.expiresIn),
+    );
+    res.cookie(
+      'refresh_token',
+      session.refreshToken,
+      getRefreshTokenCookieOptions(this.configService),
+    );
+  }
+
+  private clearSessionCookies(res: Response): void {
+    res.clearCookie('access_token', { path: '/' });
+    res.clearCookie('refresh_token', { path: '/' });
+  }
+
+  @Public()
   @Post('register')
   async register(
     @Body() dto: RegisterDto,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const result = await this.authService.signUp(dto.email, dto.password);
+    const session = await this.authService.register(
+      dto.email,
+      dto.password,
+      dto.username,
+    );
 
-    // Если Supabase сразу выдал сессию (email confirmation отключен)
-    if (result.session) {
-      res.cookie(
-        'access_token',
-        result.session.access_token,
-        getAccessTokenCookieOptions(this.configService, result.session.expires_in),
-      );
-      res.cookie(
-        'refresh_token',
-        result.session.refresh_token,
-        getRefreshTokenCookieOptions(this.configService),
-      );
-    }
+    this.setSessionCookies(res, session);
 
     return {
-      message: result.session
-        ? 'Registered and logged in'
-        : 'Confirmation email sent',
-      user: result.user,
+      message: 'Registered and logged in',
+      user: {
+        id: session.user.id,
+        email: session.user.email,
+        username: session.user.username,
+        role: session.user.role,
+      },
     };
   }
 
-  // Логин с паролем
+  @Public()
+  @HttpCode(HttpStatus.OK)
   @Post('login')
-  async login(
-    @Body() dto: SignInDto,
-    @Res({ passthrough: true }) res: Response,
-  ) {
-    const session = await this.authService.loginWithPassword(
-      dto.email,
-      dto.password,
-    );
+  async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
+    const session = await this.authService.login(dto.email, dto.password);
 
-    res.cookie(
-      'access_token',
-      session.access_token,
-      getAccessTokenCookieOptions(this.configService, session.expires_in),
-    );
-    res.cookie(
-      'refresh_token',
-      session.refresh_token,
-      getRefreshTokenCookieOptions(this.configService),
-    );
+    this.setSessionCookies(res, session);
 
     return {
       message: 'Logged in',
       user: session.user,
-      expiresIn: session.expires_in,
+      expiresIn: session.expiresIn,
     };
   }
 
-  // Обновление сессии по refresh token
+  @Public()
+  @HttpCode(HttpStatus.OK)
   @Post('refresh')
-  async refresh(
-    @Req() req: Request,
-    @Res({ passthrough: true }) res: Response,
-  ) {
-    const refreshToken = req.cookies['refresh_token'];
+  async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const refreshToken = (req.cookies as Record<string, string> | undefined)?.[
+      'refresh_token'
+    ];
+
     if (!refreshToken) {
       throw new UnauthorizedException('No refresh token');
     }
 
     const session = await this.authService.refresh(refreshToken);
 
-    res.cookie(
-      'access_token',
-      session.access_token,
-      getAccessTokenCookieOptions(this.configService, session.expires_in),
-    );
-    res.cookie(
-      'refresh_token',
-      session.refresh_token,
-      getRefreshTokenCookieOptions(this.configService),
-    );
+    this.setSessionCookies(res, session);
 
     return {
       message: 'Session refreshed',
-      expiresIn: session.expires_in,
+      expiresIn: session.expiresIn,
     };
   }
 
-  // Логаут — удаляем cookies
+  @OptionalAuth()
+  @HttpCode(HttpStatus.OK)
   @Post('logout')
   async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
-    const accessToken = req.cookies['access_token'];
-    if (accessToken) {
-      await this.authService.signOut(accessToken);
-    }
-    res.clearCookie('access_token', { path: '/' });
-    res.clearCookie('refresh_token', { path: '/' });
+    const refreshToken = (req.cookies as Record<string, string> | undefined)?.[
+      'refresh_token'
+    ];
+
+    await this.authService.logout(refreshToken);
+    this.clearSessionCookies(res);
+
     return { message: 'Logged out' };
   }
 
-  // Получить текущего пользователя (защищённый роут)
-  @UseGuards(SupabaseAuthGuard)
   @Get('me')
-  async me(@Req() req: Request) {
-    return { user: (req as any).user };
+  async me(@CurrentUser() user: RequestUser) {
+    return { user: await this.authService.me(user.id) };
   }
 
-  // Запрос на сброс пароля
-  @Post('forgot-password')
-  async forgotPassword(@Body() body: { email: string }) {
-    if (!body.email) {
-      throw new BadRequestException('Email is required');
-    }
-    await this.authService.resetPasswordForEmail(body.email);
-    return { message: 'Password reset link sent to email' };
-  }
-
-  // Сброс пароля по токену из письма
-  @Post('reset-password')
-  async resetPassword(
-    @Body() body: { token: string; newPassword: string },
-  ) {
-    if (!body.token || !body.newPassword) {
-      throw new BadRequestException('Token and newPassword are required');
-    }
-    await this.authService.resetPasswordWithToken(body.token, body.newPassword);
-    return { message: 'Password reset successfully' };
-  }
-
-  // Изменение пароля (для уже логиненного пользователя)
-  @UseGuards(SupabaseAuthGuard)
+  @HttpCode(HttpStatus.OK)
   @Post('change-password')
   async changePassword(
-    @Body() body: { oldPassword: string; newPassword: string },
+    @CurrentUser() user: RequestUser,
+    @Body() dto: ChangePasswordDto,
     @Req() req: Request,
   ) {
-    const user = (req as any).user;
-    if (!body.oldPassword || !body.newPassword) {
-      throw new BadRequestException('Old and new passwords are required');
-    }
     await this.authService.changePassword(
-      user.email,
-      body.oldPassword,
-      body.newPassword,
+      user.id,
+      dto.oldPassword,
+      dto.newPassword,
+      (req.cookies as Record<string, string> | undefined)?.['refresh_token'],
     );
+
     return { message: 'Password changed successfully' };
   }
 
-  // Обновление профиля (email, данные)
-  @UseGuards(SupabaseAuthGuard)
-  @Post('update-profile')
-  async updateProfile(
-    @Body() body: { email?: string; password?: string },
-    @Req() req: Request,
-  ) {
-    const user = (req as any).user;
-    const result = await this.authService.updateUser(user.sub, body);
-    return { message: 'Profile updated', user: result };
-  }
-
-  // Удаление аккаунта
-  @UseGuards(SupabaseAuthGuard)
-  @Post('delete-account')
+  @HttpCode(HttpStatus.OK)
+  @Delete('account')
   async deleteAccount(
-    @Body() body: { password: string },
-    @Req() req: Request,
+    @CurrentUser() user: RequestUser,
+    @Body() dto: DeleteAccountDto,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const user = (req as any).user;
-    if (!body.password) {
-      throw new BadRequestException('Password is required');
-    }
-    await this.authService.deleteUser(user.email, body.password);
-    
-    // Очистить cookies
-    res.clearCookie('access_token', { path: '/' });
-    res.clearCookie('refresh_token', { path: '/' });
-    
-    return { message: 'Account deleted successfully' };
-  }
+    await this.authService.deleteAccount(user.id, dto.password);
+    this.clearSessionCookies(res);
 
-  // Отправка письма подтверждения (для смены email)
-  @UseGuards(SupabaseAuthGuard)
-  @Post('send-verification-email')
-  async sendVerificationEmail(@Req() req: Request) {
-    const user = (req as any).user;
-    await this.authService.sendVerificationEmail(user.email);
-    return { message: 'Verification email sent' };
+    return { message: 'Account deleted successfully' };
   }
 }

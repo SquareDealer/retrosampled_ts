@@ -502,3 +502,17 @@
     animation: none;
   }
 }
+
+/* Task 3.2: tag chips became links */
+.library-card__tags a {
+  padding: 3px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 11px;
+  text-decoration: none;
+}
+
+.library-card__tags a:hover {
+  border-color: #fff;
+  color: #fff;
+}

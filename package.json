@@ -2,7 +2,7 @@
   "name": "retrosampled-monorepo",
   "private": true,
   "version": "0.1.0",
-  "packageManager": "pnpm@9.15.0",
+  "packageManager": "pnpm@10.12.1",
   "scripts": {
     "build": "turbo build",
     "dev": "turbo dev --parallel",
@@ -15,5 +15,14 @@
   "devDependencies": {
     "agentation": "^3.0.2",
     "turbo": "^2.1.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "prisma",
+      "@prisma/client",
+      "@prisma/engines",
+      "esbuild",
+      "@nestjs/core"
+    ]
   }
 }
