@@ -1,9 +1,26 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { getContinueWorkingItems, getLibraryItems, isLibraryAuthorized } from "../../api/library";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import type {
+  ContinueWorkingItem,
+  LibraryItem,
+  LibraryStatus,
+  LibraryTab,
+  Sample,
+} from "@retrosampled/shared";
+import { isLibraryStatus, isLibraryTab } from "@retrosampled/shared";
+import {
+  getContinueWorkingItems,
+  getLibraryItems,
+  likeSample,
+  requestDownload,
+  unlikeSample,
+} from "../../api/library";
+import { useAuth } from "../../auth/useAuth";
 import { useAudioContextManager } from "../../components/AudioContextManager";
 import { WaveformFromJsonForSample } from "../../components/waveform/WaveformFromJsonForSample";
-import { ContinueWorkingItem, LibraryAccessType, LibraryItem, LibraryStatus, LibraryTab } from "../../types/Library";
-import { Sample } from "../../types/Sample";
+import { useInfiniteList } from "../../hooks/useInfiniteList";
+import { useToast } from "../../hooks/useToast";
+import "../social.css";
 import "./LibraryPage.css";
 
 type SortOption = { value: string; label: string };
@@ -48,13 +65,9 @@ const statusFilters: FilterOption[] = [
   { value: "failed", label: "Failed" },
 ];
 
-const remakeStatusFilters: FilterOption[] = statusFilters.filter((option) => option.value !== "processing" && option.value !== "failed");
-
-const typeFilters: FilterOption[] = [
-  { value: "", label: "All" },
-  { value: "free", label: "Free" },
-  { value: "premium", label: "Premium" },
-];
+const remakeStatusFilters: FilterOption[] = statusFilters.filter(
+  (option) => option.value !== "processing" && option.value !== "failed"
+);
 
 const emptyStates: Record<LibraryTab, { title: string; body: string; action: string; href: string }> = {
   liked: {
@@ -83,21 +96,27 @@ const emptyStates: Record<LibraryTab, { title: string; body: string; action: str
   },
 };
 
-const validTabs = new Set<LibraryTab>(["liked", "downloaded", "uploads", "remakes"]);
+type UrlState = {
+  tab: LibraryTab;
+  search: string;
+  sort: string;
+  status: LibraryStatus | "";
+};
 
-const readUrlState = () => {
-  const params = new URLSearchParams(window.location.search);
-  const requestedTab = params.get("tab") as LibraryTab | null;
-  const tab = requestedTab && validTabs.has(requestedTab) ? requestedTab : "liked";
-  const defaultSort = sortOptions[tab][0].value;
+const readUrlState = (params: URLSearchParams): UrlState => {
+  const requestedTab = params.get("tab");
+  const tab: LibraryTab = isLibraryTab(requestedTab) ? requestedTab : "liked";
+  const requestedStatus = params.get("status");
+  const requestedSort = params.get("sort") ?? "";
+  const sort = sortOptions[tab].some((option) => option.value === requestedSort)
+    ? requestedSort
+    : sortOptions[tab][0].value;
 
   return {
     tab,
     search: params.get("search") ?? "",
-    sort: params.get("sort") ?? defaultSort,
-    status: (params.get("status") ?? "") as LibraryStatus | "",
-    type: (params.get("type") ?? "") as LibraryAccessType | "",
-    view: params.get("view") === "grid" ? "grid" : "list",
+    sort,
+    status: isLibraryStatus(requestedStatus) ? requestedStatus : "",
   };
 };
 
@@ -118,22 +137,64 @@ const toSample = (item: LibraryItem): Sample => ({
   key: item.key ?? "-",
   bpm: item.bpm ?? "-",
   type: item.type,
-  price: item.accessType === "premium" ? "Premium" : "Free",
+  likesCount: item.stats.likes,
+  isLiked: item.userState.liked,
   jsonPeaksUrl: item.waveformUrl ?? undefined,
 });
 
-const actionsByTab = (tab: LibraryTab, item: LibraryItem) => {
-  if (tab === "liked") return ["Open sample", "Unlike", "Download", "Add remake"];
-  if (tab === "downloaded") return ["Open sample", "Download again", item.userState.liked ? "Unlike" : "Like", "Add remake"];
-  if (tab === "uploads") {
-    if (item.status === "failed") return ["Retry", "Delete"];
-    return ["Open sample", "Edit", item.status === "private" ? "Publish" : "Make private", "View stats", "Delete"];
+type CardAction =
+  | "open"
+  | "like"
+  | "unlike"
+  | "download"
+  | "remake"
+  | "edit"
+  | "original";
+
+type ActionSpec = { key: CardAction; label: string; disabled?: boolean };
+
+const actionsByTab = (tab: LibraryTab, item: LibraryItem): ActionSpec[] => {
+  const processing = item.status === "processing";
+  const likeAction: ActionSpec = item.userState.liked
+    ? { key: "unlike", label: "Unlike" }
+    : { key: "like", label: "Like" };
+
+  if (tab === "liked") {
+    return [
+      { key: "open", label: "Open sample" },
+      likeAction,
+      { key: "download", label: "Download" },
+      { key: "remake", label: "Add remake" },
+    ];
   }
-  return ["Open remake", "Edit remake", "Go to original", item.status === "private" ? "Publish" : "Make private", "Delete"];
+
+  if (tab === "downloaded") {
+    return [
+      { key: "open", label: "Open sample" },
+      { key: "download", label: "Download again" },
+      likeAction,
+      { key: "remake", label: "Add remake" },
+    ];
+  }
+
+  if (tab === "uploads") {
+    if (item.status === "failed") {
+      return [{ key: "edit", label: "Retry in editor" }];
+    }
+    return [
+      { key: "open", label: "Open sample", disabled: processing },
+      { key: "edit", label: "Edit" },
+    ];
+  }
+
+  return [
+    { key: "open", label: "Open remake", disabled: processing },
+    { key: "edit", label: "Edit remake" },
+    { key: "original", label: "Go to original", disabled: !item.originalSample },
+  ];
 };
 
 const filterOptionsForTab = (tab: LibraryTab) => {
-  if (tab === "downloaded") return { name: "type", label: "Type", options: typeFilters };
   if (tab === "uploads") return { name: "status", label: "Status", options: statusFilters };
   if (tab === "remakes") return { name: "status", label: "Status", options: remakeStatusFilters };
   return null;
@@ -160,12 +221,19 @@ function LibrarySkeletons() {
   );
 }
 
-function LibraryCard({ item, tab }: { item: LibraryItem; tab: LibraryTab }) {
+type LibraryCardProps = {
+  item: LibraryItem;
+  tab: LibraryTab;
+  onAction: (action: CardAction, item: LibraryItem) => void;
+};
+
+function LibraryCard({ item, tab, onAction }: LibraryCardProps) {
   const { currentSample, state, play, seekTo } = useAudioContextManager();
   const sample = useMemo(() => toSample(item), [item]);
   const isCurrent = currentSample?.id === item.id;
   const isPlaying = isCurrent && state.isPlaying;
-  const playbackDisabled = item.status === "processing" || item.status === "failed" || !item.audioPreviewUrl;
+  const playbackDisabled =
+    item.status === "processing" || item.status === "failed" || !item.audioPreviewUrl;
 
   const handlePlay = () => {
     if (!playbackDisabled) play(sample);
@@ -179,6 +247,8 @@ function LibraryCard({ item, tab }: { item: LibraryItem; tab: LibraryTab }) {
     else if (state.isReady) seekTo(progress);
   };
 
+  const sampleHref = `/sample/${item.id}`;
+
   return (
     <article className={`library-card library-card--${item.status ?? "ready"}`}>
       <div className="library-card__cover" aria-hidden="true">
@@ -187,19 +257,30 @@ function LibraryCard({ item, tab }: { item: LibraryItem; tab: LibraryTab }) {
 
       <div className="library-card__main">
         <div className="library-card__heading">
-          <a href={`/user/${item.creator.id}`} className="library-card__creator">{item.creator.username}</a>
-          <a href={`/${item.type === "remake" ? "remakes" : "samples"}/${item.id}`} className="library-card__title">{item.title}</a>
-          {item.status && <span className={`library-status library-status--${item.status}`}>{item.status}</span>}
+          <Link to={`/user/${item.creator.username}`} className="library-card__creator">
+            @{item.creator.username}
+          </Link>
+          <Link to={sampleHref} className="library-card__title">
+            {item.title}
+          </Link>
+          {item.status && (
+            <span className={`library-status library-status--${item.status}`}>{item.status}</span>
+          )}
         </div>
 
         {tab === "remakes" && item.originalSample && (
           <div className="library-card__original">
-            Original: <a href={`/samples/${item.originalSample.id}`}>{item.originalSample.title}</a> by {item.originalSample.creatorUsername}
+            Original: <Link to={`/sample/${item.originalSample.id}`}>{item.originalSample.title}</Link> by{" "}
+            <Link to={`/user/${item.originalSample.creatorUsername}`}>@{item.originalSample.creatorUsername}</Link>
           </div>
         )}
 
         <div className="library-card__tags">
-          {item.tags.map((tag) => <span key={tag}>#{tag}</span>)}
+          {item.tags.map((tag) => (
+            <Link key={tag} to={`/feed?tags=${encodeURIComponent(tag)}`}>
+              #{tag}
+            </Link>
+          ))}
         </div>
 
         <div className="library-card__wave-row">
@@ -235,8 +316,13 @@ function LibraryCard({ item, tab }: { item: LibraryItem; tab: LibraryTab }) {
         </div>
         <div className="library-card__actions">
           {actionsByTab(tab, item).map((action) => (
-            <button key={action} type="button" disabled={item.status === "processing" && (action === "Open sample" || action === "Publish")}>
-              {action}
+            <button
+              key={action.key}
+              type="button"
+              disabled={action.disabled}
+              onClick={() => onAction(action.key, item)}
+            >
+              {action.label}
             </button>
           ))}
         </div>
@@ -246,119 +332,146 @@ function LibraryCard({ item, tab }: { item: LibraryItem; tab: LibraryTab }) {
 }
 
 function LibraryPage() {
-  const [urlState, setUrlState] = useState(readUrlState);
-  const [authorized, setAuthorized] = useState(() => isLibraryAuthorized());
-  const [items, setItems] = useState<LibraryItem[]>([]);
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlState = useMemo(() => readUrlState(searchParams), [searchParams]);
+  const { status: authStatus, openAuthModal } = useAuth();
+  const authorized = authStatus === "authenticated";
+  const { toast, showToast } = useToast();
+
+  const [searchDraft, setSearchDraft] = useState(urlState.search);
   const [continueItems, setContinueItems] = useState<ContinueWorkingItem[]>([]);
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [error, setError] = useState(false);
-  const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
-  const activeSortOptions = sortOptions[urlState.tab];
-  const selectedSort = activeSortOptions.some((option) => option.value === urlState.sort)
-    ? urlState.sort
-    : activeSortOptions[0].value;
-  const requestKey = `${urlState.tab}|${urlState.search}|${selectedSort}|${urlState.status}|${urlState.type}`;
+  useEffect(() => {
+    setSearchDraft(urlState.search);
+  }, [urlState.search]);
 
-  const writeUrlState = (next: Partial<typeof urlState>) => {
-    setUrlState((current) => {
-      const merged = { ...current, ...next };
-      const tabChanged = next.tab && next.tab !== current.tab;
-      if (tabChanged) {
+  const writeUrlState = useCallback(
+    (next: Partial<UrlState>) => {
+      const merged: UrlState = { ...urlState, ...next };
+      if (next.tab && next.tab !== urlState.tab) {
         merged.sort = sortOptions[merged.tab][0].value;
         merged.status = "";
-        merged.type = "";
       }
 
       const params = new URLSearchParams();
-      params.set("tab", merged.tab);
+      if (merged.tab !== "liked") params.set("tab", merged.tab);
       if (merged.search.trim()) params.set("search", merged.search.trim());
       if (merged.sort && merged.sort !== sortOptions[merged.tab][0].value) params.set("sort", merged.sort);
       if (merged.status) params.set("status", merged.status);
-      if (merged.type) params.set("type", merged.type);
-      if (merged.view !== "list") params.set("view", merged.view);
 
-      window.history.pushState(null, "", `/library?${params.toString()}`);
-      return merged;
-    });
-  };
+      setSearchParams(params);
+    },
+    [setSearchParams, urlState]
+  );
 
   useEffect(() => {
-    const onPopState = () => setUrlState(readUrlState());
-    window.addEventListener("popstate", onPopState);
-    return () => window.removeEventListener("popstate", onPopState);
-  }, []);
-
-  useEffect(() => {
-    setAuthorized(isLibraryAuthorized());
-    getContinueWorkingItems().then((data) => setContinueItems(data.slice(0, 3)));
-  }, []);
-
-  useEffect(() => {
-    if (!authorized) return;
+    if (!authorized) {
+      setContinueItems([]);
+      return;
+    }
     let active = true;
-    setLoading(true);
-    setError(false);
-    setItems([]);
-    setNextCursor(null);
-
-    getLibraryItems({
-      tab: urlState.tab,
-      search: urlState.search || undefined,
-      sort: selectedSort,
-      status: urlState.status || undefined,
-      type: urlState.type || undefined,
-      limit: 20,
-    })
-      .then((response) => {
-        if (!active) return;
-        setItems(response.items);
-        setNextCursor(response.nextCursor);
+    getContinueWorkingItems()
+      .then((data) => {
+        if (active) setContinueItems(data.slice(0, 3));
       })
       .catch(() => {
-        if (!active) return;
-        setError(true);
-      })
-      .finally(() => {
-        if (active) setLoading(false);
+        if (active) setContinueItems([]);
       });
-
     return () => {
       active = false;
     };
-  }, [authorized, requestKey, selectedSort, urlState.search, urlState.status, urlState.tab, urlState.type]);
+  }, [authorized]);
 
-  const loadMore = () => {
-    if (!authorized || loading || loadingMore || !nextCursor) return;
-    setLoadingMore(true);
-    getLibraryItems({
-      tab: urlState.tab,
-      search: urlState.search || undefined,
-      sort: selectedSort,
-      status: urlState.status || undefined,
-      type: urlState.type || undefined,
-      cursor: nextCursor,
-      limit: 20,
-    })
-      .then((response) => {
-        setItems((current) => [...current, ...response.items]);
-        setNextCursor(response.nextCursor);
-      })
-      .catch(() => setError(true))
-      .finally(() => setLoadingMore(false));
+  const requestKey = `${urlState.tab}|${urlState.search}|${urlState.sort}|${urlState.status}`;
+
+  const loadPage = useCallback(
+    (cursor?: string) =>
+      getLibraryItems({
+        tab: urlState.tab,
+        search: urlState.search || undefined,
+        sort: urlState.sort,
+        status: urlState.status || undefined,
+        cursor,
+        limit: 20,
+      }).then((response) => ({ items: response.items, nextCursor: response.nextCursor })),
+    [urlState.search, urlState.sort, urlState.status, urlState.tab]
+  );
+
+  const list = useInfiniteList<LibraryItem>(loadPage, requestKey, { enabled: authorized });
+
+  // Debounced search → URL.
+  useEffect(() => {
+    if (searchDraft === urlState.search) return;
+    const handle = window.setTimeout(() => writeUrlState({ search: searchDraft }), 350);
+    return () => window.clearTimeout(handle);
+  }, [searchDraft, urlState.search, writeUrlState]);
+
+  const patchItem = (id: string, patch: (item: LibraryItem) => LibraryItem) => {
+    list.setItems((current) => current.map((item) => (item.id === id ? patch(item) : item)));
   };
 
-  useEffect(() => {
-    const node = loadMoreRef.current;
-    if (!node) return;
-    const observer = new IntersectionObserver((entries) => {
-      if (entries.some((entry) => entry.isIntersecting)) loadMore();
-    }, { rootMargin: "240px" });
-    observer.observe(node);
-    return () => observer.disconnect();
-  });
+  const toggleLike = async (item: LibraryItem, liked: boolean) => {
+    const previous = item;
+    patchItem(item.id, (current) => ({
+      ...current,
+      userState: { ...current.userState, liked },
+      stats: { ...current.stats, likes: Math.max(0, current.stats.likes + (liked ? 1 : -1)) },
+    }));
+
+    try {
+      const response = await (liked ? likeSample(item.id) : unlikeSample(item.id));
+      patchItem(item.id, (current) => ({
+        ...current,
+        userState: { ...current.userState, liked: response.liked },
+        stats: { ...current.stats, likes: response.likesCount },
+      }));
+      if (urlState.tab === "liked" && !response.liked) {
+        list.setItems((current) => current.filter((entry) => entry.id !== item.id));
+      }
+    } catch {
+      patchItem(item.id, () => previous);
+      showToast("error", "Could not save like. Changes reverted.");
+    }
+  };
+
+  const download = async (item: LibraryItem) => {
+    try {
+      const response = await requestDownload(item.id);
+      window.open(response.downloadUrl, "_blank", "noopener");
+      showToast("success", "Download started.");
+    } catch {
+      showToast("error", "Download is not available right now.");
+    }
+  };
+
+  const handleAction = (action: CardAction, item: LibraryItem) => {
+    switch (action) {
+      case "open":
+        navigate(`/sample/${item.id}`);
+        return;
+      case "like":
+        void toggleLike(item, true);
+        return;
+      case "unlike":
+        void toggleLike(item, false);
+        return;
+      case "download":
+        void download(item);
+        return;
+      case "remake":
+        navigate(`/sample/${item.id}/remake`);
+        return;
+      case "edit":
+        navigate(`/sample/${item.id}/edit`);
+        return;
+      case "original":
+        if (item.originalSample) navigate(`/sample/${item.originalSample.id}`);
+        return;
+      default:
+        return;
+    }
+  };
 
   const filter = filterOptionsForTab(urlState.tab);
   const emptyState = emptyStates[urlState.tab];
@@ -371,13 +484,19 @@ function LibraryPage() {
         <p>Your saved, downloaded and created samples.</p>
       </header>
 
-      {!authorized ? (
+      {authStatus === "loading" ? (
+        <LibrarySkeletons />
+      ) : !authorized ? (
         <section className="library-state library-state--auth">
           <h2>Sign in to view your library.</h2>
           <p>Your liked, downloaded and uploaded samples will appear here.</p>
           <div className="library-state__actions">
-            <a href="/signin">Sign In</a>
-            <a href="/signup">Create Account</a>
+            <button type="button" onClick={() => openAuthModal("login")}>
+              Sign In
+            </button>
+            <button type="button" onClick={() => openAuthModal("signup")}>
+              Create Account
+            </button>
           </div>
         </section>
       ) : (
@@ -387,10 +506,10 @@ function LibraryPage() {
               <h2 id="continue-title">Continue working</h2>
               <div className="library-continue__grid">
                 {continueItems.map((item) => (
-                  <a href={item.href} className="library-continue__item" key={item.id}>
+                  <Link to={item.href} className="library-continue__item" key={item.id}>
                     <span>{item.label}</span>
                     <strong>{item.title}</strong>
-                  </a>
+                  </Link>
                 ))}
               </div>
             </section>
@@ -403,6 +522,7 @@ function LibraryPage() {
                 className={urlState.tab === tab.key ? "library-tabs__tab library-tabs__tab--active" : "library-tabs__tab"}
                 type="button"
                 onClick={() => writeUrlState({ tab: tab.key })}
+                aria-current={urlState.tab === tab.key ? "page" : undefined}
               >
                 {tab.label}
               </button>
@@ -413,8 +533,8 @@ function LibraryPage() {
             <label className="library-context__search">
               <span>Search in library</span>
               <input
-                value={urlState.search}
-                onChange={(event) => writeUrlState({ search: event.target.value })}
+                value={searchDraft}
+                onChange={(event) => setSearchDraft(event.target.value)}
                 placeholder="title, creator, tag, BPM or key"
                 type="search"
               />
@@ -422,8 +542,12 @@ function LibraryPage() {
 
             <label>
               <span>Sort</span>
-              <select value={selectedSort} onChange={(event) => writeUrlState({ sort: event.target.value })}>
-                {activeSortOptions.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}
+              <select value={urlState.sort} onChange={(event) => writeUrlState({ sort: event.target.value })}>
+                {sortOptions[urlState.tab].map((option) => (
+                  <option value={option.value} key={option.value}>
+                    {option.label}
+                  </option>
+                ))}
               </select>
             </label>
 
@@ -431,10 +555,14 @@ function LibraryPage() {
               <label>
                 <span>{filter.label}</span>
                 <select
-                  value={filter.name === "type" ? urlState.type : urlState.status}
-                  onChange={(event) => writeUrlState(filter.name === "type" ? { type: event.target.value as LibraryAccessType | "" } : { status: event.target.value as LibraryStatus | "" })}
+                  value={urlState.status}
+                  onChange={(event) => writeUrlState({ status: event.target.value as LibraryStatus | "" })}
                 >
-                  {filter.options.map((option) => <option value={option.value} key={option.value || "all"}>{option.label}</option>)}
+                  {filter.options.map((option) => (
+                    <option value={option.value} key={option.value || "all"}>
+                      {option.label}
+                    </option>
+                  ))}
                 </select>
               </label>
             )}
@@ -446,31 +574,43 @@ function LibraryPage() {
           </section>
 
           <section className="library-content">
-            {loading ? <LibrarySkeletons /> : error ? (
+            {list.status === "loading" ? (
+              <LibrarySkeletons />
+            ) : list.status === "error" ? (
               <div className="library-state">
                 <h2>Something went wrong.</h2>
-                <p>We couldn't load your library.</p>
-                <button type="button" onClick={() => setUrlState((current) => ({ ...current }))}>Retry</button>
+                <p>{list.error ?? "We couldn't load your library."}</p>
+                <button type="button" onClick={list.reload}>
+                  Retry
+                </button>
               </div>
-            ) : items.length === 0 ? (
+            ) : list.items.length === 0 ? (
               <div className="library-state">
                 <h2>{emptyState.title}</h2>
                 <p>{emptyState.body}</p>
-                <a href={emptyState.href}>{emptyState.action}</a>
+                <Link to={emptyState.href}>{emptyState.action}</Link>
               </div>
             ) : (
               <>
                 <div className="library-list">
-                  {items.map((item) => <LibraryCard item={item} tab={urlState.tab} key={item.id} />)}
+                  {list.items.map((item) => (
+                    <LibraryCard item={item} tab={urlState.tab} onAction={handleAction} key={item.id} />
+                  ))}
                 </div>
-                <div className="library-load-more" ref={loadMoreRef}>
-                  {loadingMore ? "Loading more..." : nextCursor ? "Scroll for more" : "End of library"}
+                <div className="library-load-more" ref={list.sentinelRef}>
+                  {list.isLoadingMore ? "Loading more..." : list.hasMore ? "Scroll for more" : "End of library"}
                 </div>
               </>
             )}
           </section>
         </>
       )}
+
+      {toast ? (
+        <div className={`page-toast page-toast--${toast.tone}`} role="status" aria-live="polite">
+          {toast.text}
+        </div>
+      ) : null}
     </main>
   );
 }

@@ -2,7 +2,8 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { WaveformFromJsonForSample } from "./waveform/WaveformFromJsonForSample";
 import { useAudioContextManager } from "./AudioContextManager";
-import { Sample } from "../types/Sample";
+import { Sample } from "@retrosampled/shared";
+import { useLikeSample } from "../hooks/useLikeSample";
 import avatarImage from "../assets/img/avatar.png";
 import playIcon from "../assets/img/play_icon.png";
 import pauseIcon from "../assets/img/pause_icon.png";
@@ -43,8 +44,11 @@ export const SamplePiece: React.FC<SamplePieceProps> = ({
   onRemakesToggle,
 }) => {
   const { currentSample, state, play, seekTo } = useAudioContextManager();
-  const [isLiked, setIsLiked] = React.useState(Boolean(sample.isLiked));
-  const [likesCount, setLikesCount] = React.useState<number>(() => getInitialLikesCount(sample));
+  const initialLikesCount = React.useMemo(() => getInitialLikesCount(sample), [sample]);
+  const { isLiked, likesCount, toggle: toggleLike } = useLikeSample(String(sample.id), {
+    isLiked: sample.isLiked,
+    likesCount: initialLikesCount,
+  });
 
   const isCurrent = currentSample?.id === sample.id;
   const isPlaying = isCurrent && state.isPlaying;
@@ -78,11 +82,7 @@ export const SamplePiece: React.FC<SamplePieceProps> = ({
 
   const handleLikeClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
-
-    setIsLiked((prevLiked) => {
-      setLikesCount((prevCount) => (prevLiked ? Math.max(0, prevCount - 1) : prevCount + 1));
-      return !prevLiked;
-    });
+    void toggleLike();
   };
 
   const handleRemakesToggle = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -159,7 +159,7 @@ export const SamplePiece: React.FC<SamplePieceProps> = ({
           <button className="sample-row__play" onClick={handlePlayClick}>
             <img 
                 className="sample-row__play-icon" 
-                src={isPlaying ? pauseIcon : playIcon}
+                src={isPlaying ? pauseIcon : playIcon} 
                 alt={isPlaying ? "Pause" : "Play"} 
             />
           </button>

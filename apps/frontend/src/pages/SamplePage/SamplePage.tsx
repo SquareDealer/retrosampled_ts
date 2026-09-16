@@ -1,13 +1,14 @@
 import React from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import {
-  fetchSampleById,
-  fetchSampleComments,
-  mockCreateCommentRequest,
-  mockToggleCreatorFollowRequest,
-  mockToggleLikeRequest,
-} from "../../api/samples";
+import { can } from "@retrosampled/shared";
+import type { SampleStatus } from "@retrosampled/shared";
+import { deleteSample, fetchSampleById, reportPlay, requestDownload } from "../../api/samples";
+import { createComment, fetchComments } from "../../api/comments";
+import { setFollowing } from "../../api/follows";
+import { useAuth } from "../../auth/useAuth";
+import { useAudioContextManager } from "../../components/AudioContextManager";
+import { useLikeSample } from "../../hooks/useLikeSample";
 import { CommentsSection } from "../../components/sample-page/CommentsSection";
 import { SampleActionsBar } from "../../components/sample-page/SampleActionsBar";
 import { SampleCoverCard } from "../../components/sample-page/SampleCoverCard";
@@ -17,7 +18,7 @@ import { SampleMeta } from "../../components/sample-page/SampleMeta";
 import { SamplePlayer } from "../../components/sample-page/SamplePlayer";
 import { RelatedSamplesSection } from "../../components/sample-page/RelatedSamplesSection";
 import { SampleTags } from "../../components/sample-page/SampleTags";
-import { SampleComment, SampleDetail } from "../../types/sampleDetail";
+import type { SampleComment, SampleDetail } from "@retrosampled/shared";
 import "./SamplePage.css";
 
 type PageStatus = "loading" | "loaded" | "error" | "empty";
@@ -28,12 +29,6 @@ type NoticeState = {
 };
 
 type CommentsStatus = "loading" | "loaded" | "error";
-
-const LOCAL_COMMENT_USER = {
-  id: "u2",
-  username: "squaredealer",
-  avatarUrl: "/img/avatar.jpg",
-};
 
 const NOTICE_DURATION_MS = 1800;
 
@@ -94,6 +89,8 @@ const SamplePageSkeleton: React.FC = () => {
 const SamplePage: React.FC = () => {
   const { sampleId = "" } = useParams();
   const navigate = useNavigate();
+  const { user, status: authStatus, openAuthModal } = useAuth();
+  const { currentSample, state: playerState } = useAudioContextManager();
 
   const [status, setStatus] = useState<PageStatus>("loading");
   const [sample, setSample] = useState<SampleDetail | null>(null);
@@ -111,6 +108,24 @@ const SamplePage: React.FC = () => {
 
   const menuRef = useRef<HTMLDivElement | null>(null);
   const noticeTimerRef = useRef<number | null>(null);
+  const reportedPlayRef = useRef<string | null>(null);
+
+  const actor = user ? { id: user.id, role: user.role } : null;
+  const canEdit = Boolean(
+    sample &&
+      can(actor, "sample:edit", {
+        kind: "sample",
+        ownerId: sample.ownerId ?? "",
+        status: (sample.status ?? "PUBLISHED") as SampleStatus,
+        collaboratorIds: sample.collaboratorIds,
+      })
+  );
+
+  const like = useLikeSample(
+    sample?.id ?? sampleId,
+    { isLiked: sample?.isLiked, likesCount: sample?.likesCount },
+    { onError: () => showNotice("error", "Could not save like. Changes reverted.") }
+  );
 
   const creatorsWithFollowState = useMemo(() => {
     if (!sample) {
@@ -196,7 +211,7 @@ const SamplePage: React.FC = () => {
       setCommentsErrorText(null);
 
       try {
-        const response = await fetchSampleComments(sampleId);
+        const response = await fetchComments(sampleId);
 
         if (cancelled) {
           return;
@@ -264,54 +279,66 @@ const SamplePage: React.FC = () => {
     setCreatorFollowLoadingById({});
   }, [sample]);
 
-  const handleLike = async () => {
+  const handleDownload = async () => {
     if (!sample) {
       return;
     }
 
-    const previousLikes = sample.likesCount;
-    const previousIsLiked = sample.isLiked;
-    const nextIsLiked = !sample.isLiked;
-    const nextLikes = nextIsLiked ? previousLikes + 1 : Math.max(0, previousLikes - 1);
-
-    setSample((current) => {
-      if (!current) {
-        return current;
-      }
-
-      return {
-        ...current,
-        isLiked: nextIsLiked,
-        likesCount: nextLikes,
-      };
-    });
+    if (authStatus !== "authenticated") {
+      openAuthModal("login");
+      return;
+    }
 
     try {
-      await mockToggleLikeRequest(sample.id, nextIsLiked);
-    } catch {
-      setSample((current) => {
-        if (!current) {
-          return current;
-        }
-
-        return {
-          ...current,
-          isLiked: previousIsLiked,
-          likesCount: previousLikes,
-        };
-      });
-
-      showNotice("error", "Could not save like. Changes reverted.");
+      const response = await requestDownload(sample.id);
+      downloadSample(response.downloadUrl, sample.title);
+      showNotice("success", "Download started.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Download failed.";
+      showNotice("error", message);
     }
   };
 
-  const handleDownload = () => {
+  const handleAddRemake = () => {
     if (!sample) {
       return;
     }
 
-    downloadSample(sample.audioPreviewUrl, sample.title);
-    showNotice("success", "Download started.");
+    if (authStatus !== "authenticated") {
+      openAuthModal("login");
+      return;
+    }
+
+    navigate(`/sample/${sample.id}/remake`);
+  };
+
+  const handleEdit = () => {
+    if (!sample) {
+      return;
+    }
+
+    setIsMoreOpen(false);
+    navigate(`/sample/${sample.id}/edit`);
+  };
+
+  const handleDelete = async () => {
+    if (!sample) {
+      return;
+    }
+
+    setIsMoreOpen(false);
+
+    if (!window.confirm(`Delete "${sample.title}"? Remakes stay, but lose the link to it.`)) {
+      return;
+    }
+
+    try {
+      await deleteSample(sample.id);
+      navigate("/feed", { replace: true });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Could not delete sample.";
+      showNotice("error", message);
+    }
   };
 
   const handleCopy = async () => {
@@ -374,6 +401,16 @@ const SamplePage: React.FC = () => {
       return;
     }
 
+    if (!user) {
+      openAuthModal("login");
+      return;
+    }
+
+    if (user.id === creatorId) {
+      showNotice("error", "You cannot follow yourself.");
+      return;
+    }
+
     const previous =
       creatorFollowById[creatorId] ??
       sample?.creators.find((creator) => creator.id === creatorId)?.isFollowing ??
@@ -391,7 +428,7 @@ const SamplePage: React.FC = () => {
     }));
 
     try {
-      await mockToggleCreatorFollowRequest(creatorId, next);
+      await setFollowing(creatorId, next);
     } catch {
       setCreatorFollowById((current) => ({
         ...current,
@@ -410,9 +447,9 @@ const SamplePage: React.FC = () => {
     return {
       id: `temp-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       user: {
-        id: LOCAL_COMMENT_USER.id,
-        username: LOCAL_COMMENT_USER.username,
-        avatarUrl: LOCAL_COMMENT_USER.avatarUrl,
+        id: user?.id ?? "me",
+        username: user?.username ?? "you",
+        avatarUrl: user?.avatarUrl ?? undefined,
       },
       text,
       createdAt: new Date().toISOString(),
@@ -427,12 +464,17 @@ const SamplePage: React.FC = () => {
       return;
     }
 
+    if (!user) {
+      openAuthModal("login");
+      return;
+    }
+
     const temporaryComment = createTemporaryComment(text);
 
     setComments((current) => [temporaryComment, ...current]);
 
     try {
-      const created = await mockCreateCommentRequest(sample.id, text);
+      const created = await createComment(sample.id, text);
 
       setComments((current) => {
         return current.map((comment) => {
@@ -459,6 +501,11 @@ const SamplePage: React.FC = () => {
       return;
     }
 
+    if (!user) {
+      openAuthModal("login");
+      return;
+    }
+
     const temporaryReply = createTemporaryComment(text, parentId);
 
     setComments((current) => {
@@ -475,7 +522,7 @@ const SamplePage: React.FC = () => {
     });
 
     try {
-      const createdReply = await mockCreateCommentRequest(sample.id, text, parentId);
+      const createdReply = await createComment(sample.id, text, parentId);
 
       setComments((current) => {
         return current.map((comment) => {
@@ -514,6 +561,20 @@ const SamplePage: React.FC = () => {
       throw error;
     }
   };
+
+  // Count a play once per page visit when this sample actually starts playing.
+  useEffect(() => {
+    if (!sample || !playerState.isPlaying) {
+      return;
+    }
+
+    if (String(currentSample?.id) !== sample.id || reportedPlayRef.current === sample.id) {
+      return;
+    }
+
+    reportedPlayRef.current = sample.id;
+    void reportPlay(sample.id);
+  }, [currentSample?.id, playerState.isPlaying, sample]);
 
   const handleRetry = () => {
     setReloadToken((value) => value + 1);
@@ -555,16 +616,19 @@ const SamplePage: React.FC = () => {
 
           <div className="sample-page__actions-wrap" ref={menuRef}>
             <SampleActionsBar
-              likesCount={sample.likesCount}
-              isLiked={sample.isLiked}
-              onLike={handleLike}
-              onAdd={() => undefined}
-              onDownload={handleDownload}
+              likesCount={like.likesCount}
+              isLiked={like.isLiked}
+              onLike={() => {
+                void like.toggle();
+              }}
+              onAdd={handleAddRemake}
+              onDownload={() => {
+                void handleDownload();
+              }}
               onCopy={() => {
                 void handleCopy();
               }}
               onMore={() => setIsMoreOpen((current) => !current)}
-              isAddDisabled
             />
 
             {isMoreOpen ? (
@@ -586,6 +650,22 @@ const SamplePage: React.FC = () => {
                 >
                   Open original sample
                 </button>
+                {canEdit ? (
+                  <>
+                    <button type="button" className="sample-page__menu-item" onClick={handleEdit}>
+                      Edit sample
+                    </button>
+                    <button
+                      type="button"
+                      className="sample-page__menu-item"
+                      onClick={() => {
+                        void handleDelete();
+                      }}
+                    >
+                      Delete sample
+                    </button>
+                  </>
+                ) : null}
               </div>
             ) : null}
           </div>
@@ -631,9 +711,7 @@ const SamplePage: React.FC = () => {
 
           <RelatedSamplesSection
             relatedSamples={sample.relatedSamples}
-            onAddRemake={() => {
-              showNotice("success", "Remake creation flow will be available soon.");
-            }}
+            onAddRemake={handleAddRemake}
             onFeedback={showNotice}
           />
 

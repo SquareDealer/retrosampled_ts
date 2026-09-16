@@ -1,9 +1,6 @@
 import React, { useMemo, useState } from "react";
-import {
-  CREATOR_ROLE_PRIORITY,
-  CreatorRole,
-  CreatorViewModel,
-} from "../../types/sampleDetail";
+import { CREATOR_ROLE_PRIORITY } from "@retrosampled/shared";
+import type { CreatorRole, CreatorViewModel } from "@retrosampled/shared";
 import { formatCompactNumber } from "../../utils/formatCompactNumber";
 
 const ROLE_LABELS: Record<CreatorRole, string> = {
@@ -30,8 +27,10 @@ const MAX_VISIBLE_BADGES = 2;
 
 type CreatorsSectionProps = {
   creators: CreatorViewModel[];
+  /** Follow / unfollow (subscribe == follow; one concept). */
   onFollowToggle: (creatorId: string) => void;
-  onCreatorOpen: (creatorId: string) => void;
+  /** Receives the creator's username: profiles live at `/user/:username`. */
+  onCreatorOpen: (username: string) => void;
   loadingCreatorIds?: string[];
   isFollowDisabled?: boolean;
 };
@@ -92,7 +91,7 @@ const CreatorCard: React.FC<CreatorCardProps> = ({
   const followLabel = isLoading
     ? "Loading"
     : isFollowDisabled
-      ? "Disabled"
+      ? "Follow"
       : creator.isFollowing
         ? "Following"
         : "Follow";
@@ -203,7 +202,7 @@ export const CreatorsSection: React.FC<CreatorsSectionProps> = ({
               isLoading={loadingSet.has(creator.id)}
               isFollowDisabled={isFollowDisabled}
               onFollowToggle={() => onFollowToggle(creator.id)}
-              onOpen={() => onCreatorOpen(creator.id)}
+              onOpen={() => onCreatorOpen(creator.username)}
             />
           ))}
         </div>

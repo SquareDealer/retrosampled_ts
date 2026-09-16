@@ -1,0 +1,71 @@
+.follow-list {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  margin-top: 24px;
+}
+
+.follow-row {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.follow-row .social-avatar,
+.follow-row .social-avatar--fallback {
+  width: 48px;
+  height: 48px;
+  font-size: 16px;
+}
+
+.follow-row__main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.follow-row__name {
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.follow-row__name:hover {
+  color: #f4dd00;
+}
+
+.follow-row__meta {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 12px;
+}
+
+.follow-list__nav {
+  display: flex;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.follow-list__nav a {
+  flex: 1;
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #fff;
+  color: #fff;
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.follow-list__nav a[aria-current="page"] {
+  background: #fff;
+  color: #000;
+}

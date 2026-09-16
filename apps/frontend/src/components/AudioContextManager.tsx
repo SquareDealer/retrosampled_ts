@@ -8,7 +8,7 @@ import React, {
   useEffect,
 } from "react";
 import { Howl } from "howler";
-import { Sample } from "../types/Sample";
+import { Sample } from "@retrosampled/shared";
 
 // ─────────────────────────────────────────────────────────────
 // Types & Interfaces

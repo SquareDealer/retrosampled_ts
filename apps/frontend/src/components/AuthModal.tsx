@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from "react";
+import type { AuthUser } from "@retrosampled/shared";
+import * as authApi from "../api/auth";
 import "./AuthModal.css";
 
 interface AuthModalProps {
@@ -7,12 +9,6 @@ interface AuthModalProps {
   initialMode?: "login" | "signup";
   onAuthSuccess?: (user: AuthUser) => void;
 }
-
-type AuthUser = {
-  id?: string;
-  sub?: string;
-  email?: string;
-};
 
 type FormErrors = {
   email?: string;
@@ -26,14 +22,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   initialMode = "login",
   onAuthSuccess,
 }) => {
-  const [mode, setMode] = useState<"login" | "signup" | "email-sent">(initialMode);
+  const [mode, setMode] = useState<"login" | "signup">(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [repeatPassword, setRepeatPassword] = useState("");
   const [errors, setErrors] = useState<FormErrors>({});
   const [generalError, setGeneralError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [sentEmail, setSentEmail] = useState("");
 
   useEffect(() => {
     if (isOpen) {
@@ -43,9 +38,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   if (!isOpen) return null;
 
-  const validateEmail = (email: string): boolean => {
+  const validateEmail = (value: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+    return emailRegex.test(value);
   };
 
   const validateForm = (): boolean => {
@@ -75,6 +70,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     return Object.keys(newErrors).length === 0;
   };
 
+  const resetForm = () => {
+    setEmail("");
+    setPassword("");
+    setRepeatPassword("");
+    setErrors({});
+    setGeneralError(null);
+    setIsSubmitting(false);
+  };
+
+  const handleClose = () => {
+    resetForm();
+    setMode(initialMode);
+    onClose();
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -83,67 +93,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setIsSubmitting(true);
     setGeneralError(null);
 
-    const endpoint = mode === "login" ? "/auth/login" : "/auth/register";
-    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
-
     try {
-      const response = await fetch(`${API_URL}${endpoint}`, {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email,
-          password,
-        }),
-      });
+      const result =
+        mode === "login"
+          ? await authApi.login(email, password)
+          : await authApi.register(email, password);
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        const errorMessage = Array.isArray(data.message)
-          ? data.message.join(", ")
-          : data.message;
-        throw new Error(errorMessage || "Something went wrong");
-      }
-
-      if (data.user && (mode === "login" || data.message === "Registered and logged in")) {
-        onAuthSuccess?.(data.user as AuthUser);
-      }
-
-      // При регистрации показываем экран подтверждения email
-      if (mode === "signup") {
-        if (data.message === "Registered and logged in") {
-          handleClose();
-          return;
-        }
-
-        setSentEmail(email);
-        setMode("email-sent");
-        setEmail("");
-        setPassword("");
-        setRepeatPassword("");
-      } else {
-        handleClose();
-      }
-    } catch (err: any) {
-      setGeneralError(err.message);
+      onAuthSuccess?.(result.user as AuthUser);
+      handleClose();
+    } catch (err) {
+      setGeneralError(
+        err instanceof Error ? err.message : "Something went wrong"
+      );
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handleClose = () => {
-    setEmail("");
-    setPassword("");
-    setRepeatPassword("");
-    setErrors({});
-    setGeneralError(null);
-    setIsSubmitting(false);
-    setSentEmail("");
-    setMode(initialMode);
-    onClose();
   };
 
   const switchMode = () => {
@@ -173,43 +137,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
         <div className="auth-modal__header">
           <h2 className="auth-modal__title">
-            {mode === "login" ? "Log-In" : mode === "signup" ? "Sign-Up" : "Check Your Email"}
+            {mode === "login" ? "Log-In" : "Sign-Up"}
           </h2>
         </div>
 
-        {mode === "email-sent" ? (
-          <div className="auth-modal__email-sent">
-            <div className="auth-modal__email-sent-icon">
-              ✉
-            </div>
-            <p className="auth-modal__email-sent-text">
-              We've sent a confirmation link to
-            </p>
-            <p className="auth-modal__email-sent-address">
-              {sentEmail}
-            </p>
-            <p className="auth-modal__email-sent-hint">
-              Please check your inbox and click the link to verify your account.
-            </p>
-            <button
-              type="button"
-              className="auth-modal__submit"
-              onClick={handleClose}
-            >
-              Got it
-            </button>
-            <div className="auth-modal__switch">
-              Didn't receive the email?{" "}
-              <button
-                type="button"
-                className="auth-modal__switch-btn"
-                onClick={() => console.log("Resend email clicked")}
-              >
-                Resend
-              </button>
-            </div>
-          </div>
-        ) : (
         <form className="auth-modal__form" onSubmit={handleSubmit}>
           <div className="auth-modal__field">
             <label className="auth-modal__label" htmlFor="email">
@@ -368,7 +299,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             )}
           </div>
         </form>
-        )}
       </div>
     </div>
   );

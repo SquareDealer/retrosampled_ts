@@ -1,0 +1,232 @@
+/* Shared primitives for the Task 3.2 screens (profile, follows, notifications,
+   settings, 404). Black ground, Roboto Mono, zero radius, translucent borders. */
+
+.social-page {
+  width: min(1180px, calc(100vw - 40px));
+  margin: 0 auto;
+  padding: 40px 0 96px;
+  color: #fff;
+  font-family: "Roboto Mono", monospace;
+}
+
+.social-page--narrow {
+  width: min(760px, calc(100vw - 40px));
+}
+
+.social-eyebrow {
+  margin: 0 0 10px;
+  color: #f4dd00;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.social-title {
+  margin: 0;
+  font-size: clamp(36px, 6vw, 72px);
+  line-height: 0.95;
+  font-weight: 700;
+}
+
+.social-subtitle {
+  margin: 14px 0 0;
+  max-width: 560px;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.social-btn {
+  min-height: 40px;
+  padding: 0 18px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 0;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background-color 0.1s, color 0.1s, border-color 0.1s, opacity 0.1s;
+}
+
+.social-btn:hover,
+.social-btn:focus-visible {
+  border-color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.social-btn--primary {
+  background: #fff;
+  color: #000;
+  border-color: #fff;
+}
+
+.social-btn--primary:hover,
+.social-btn--primary:focus-visible {
+  background: #fff;
+  opacity: 0.85;
+}
+
+.social-btn--accent {
+  color: #f4dd00;
+  border-color: #f4dd00;
+}
+
+.social-btn--accent:hover,
+.social-btn--accent:focus-visible {
+  background: rgba(244, 221, 0, 0.12);
+}
+
+.social-btn--danger {
+  color: #ff9d9d;
+  border-color: rgba(255, 157, 157, 0.6);
+}
+
+.social-btn--danger:hover,
+.social-btn--danger:focus-visible {
+  background: rgba(255, 157, 157, 0.12);
+}
+
+.social-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.social-state {
+  display: flex;
+  min-height: 220px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 36px;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  text-align: center;
+}
+
+.social-state h2,
+.social-state p {
+  margin: 0;
+}
+
+.social-state h2 {
+  font-size: 18px;
+}
+
+.social-state p {
+  max-width: 460px;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.social-load-more {
+  padding: 24px 0 0;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 12px;
+  text-align: center;
+}
+
+.social-avatar,
+.social-avatar--fallback {
+  flex: 0 0 auto;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #141414;
+}
+
+.social-avatar--fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.page-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 96px;
+  z-index: 120;
+  transform: translateX(-50%);
+  padding: 10px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: #000;
+  color: #fff;
+  font-size: 12px;
+}
+
+.page-toast--success {
+  border-color: #96ffb0;
+}
+
+.page-toast--error {
+  border-color: #ff9d9d;
+  color: #ff9d9d;
+}
+
+.social-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.social-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.social-field > span {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.social-field input,
+.social-field textarea {
+  min-height: 42px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 0;
+  background: #000;
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  outline: none;
+}
+
+.social-field textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+.social-field input:focus,
+.social-field textarea:focus {
+  border-color: #fff;
+}
+
+.social-field__hint {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 11px;
+}
+
+.social-error {
+  margin: 0;
+  color: #ff9d9d;
+  font-size: 12px;
+}
+
+.social-ok {
+  margin: 0;
+  color: #96ffb0;
+  font-size: 12px;
+}

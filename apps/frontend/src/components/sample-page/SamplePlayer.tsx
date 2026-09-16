@@ -1,6 +1,6 @@
 import React from "react";
 import { KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
-import { Sample } from "../../types/Sample";
+import { Sample } from "@retrosampled/shared";
 import { useAudioContextManager } from "../AudioContextManager";
 import { WaveformFromJsonForSample } from "../waveform/WaveformFromJsonForSample";
 import { WaveformBars } from "../waveform/WaveformBars";
@@ -46,7 +46,6 @@ export const SamplePlayer: React.FC<SamplePlayerProps> = ({
       time: duration ? formatTime(duration) : "0:00",
       key: "",
       bpm: 0,
-      price: 0,
       jsonPeaksUrl: waveformPeaksUrl,
     }),
     [audioUrl, duration, sampleId, sampleTitle, waveformPeaksUrl]

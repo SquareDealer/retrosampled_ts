@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { WaveformBars, WaveformBarsProps } from "./WaveformBars";
 import { useAudioContextManager } from "../AudioContextManager";
-import { Sample } from "../../types/Sample";
+import { Sample } from "@retrosampled/shared";
 
 // ─────────────────────────────────────────────────────────────
 // Types

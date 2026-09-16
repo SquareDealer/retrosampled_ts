@@ -1,4 +1,4 @@
-import { Sample } from "../types/Sample";
+import { Sample } from "@retrosampled/shared";
 
 export const mockSamples: Record<string, Sample[]> = {
   popular: [
@@ -13,7 +13,6 @@ export const mockSamples: Record<string, Sample[]> = {
       key: "Am",
       bpm: 85,
       type: "Loop",
-      price: 50,
       jsonPeaksUrl: "/waveforms/ALL EYES ON ME CHOP.json"
     },
     {
@@ -28,7 +27,6 @@ export const mockSamples: Record<string, Sample[]> = {
       key: "Am",
       bpm: 85,
       type: "Loop",
-      price: 50,
       jsonPeaksUrl: "/waveforms/ALL EYES ON ME CHOP.json"
     },
     {
@@ -43,7 +41,6 @@ export const mockSamples: Record<string, Sample[]> = {
       key: "Am",
       bpm: 85,
       type: "Loop",
-      price: 50,
       jsonPeaksUrl: "/waveforms/ALL EYES ON ME CHOP.json"
     },
     {
@@ -58,7 +55,6 @@ export const mockSamples: Record<string, Sample[]> = {
       key: "Am",
       bpm: 85,
       type: "Loop",
-      price: 50,
       jsonPeaksUrl: "/waveforms/ALL EYES ON ME CHOP.json"
     },
     {
@@ -73,7 +69,6 @@ export const mockSamples: Record<string, Sample[]> = {
       key: "Am",
       bpm: 85,
       type: "Loop",
-      price: 50,
       jsonPeaksUrl: "/waveforms/ALL EYES ON ME CHOP.json"
     },
     {
@@ -88,7 +83,6 @@ export const mockSamples: Record<string, Sample[]> = {
       key: "Dm",
       bpm: 120,
       type: "One-shot",
-      price: 75,
       jsonPeaksUrl: "/waveforms/BULLET CHOP.json"
     }
   ],
@@ -105,7 +99,6 @@ export const mockSamples: Record<string, Sample[]> = {
       key: "Am",
       bpm: 85,
       type: "Loop",
-      price: 150,
       jsonPeaksUrl: "/waveforms/ALL EYES ON ME CHOP.json"
     },
     {
@@ -120,7 +113,6 @@ export const mockSamples: Record<string, Sample[]> = {
       key: "Dm",
       bpm: 120,
       type: "One-shot",
-      price: 200,
       jsonPeaksUrl: "/waveforms/BULLET CHOP.json"
     }
   ],
@@ -136,7 +128,6 @@ export const mockSamples: Record<string, Sample[]> = {
       key: "Am",
       bpm: 85,
       type: "Loop",
-      price: 50,
       jsonPeaksUrl: "/waveforms/ALL EYES ON ME CHOP.json"
     },
     {
@@ -151,7 +142,6 @@ export const mockSamples: Record<string, Sample[]> = {
       key: "Dm",
       bpm: 120,
       type: "One-shot",
-      price: 75,
       jsonPeaksUrl: "/waveforms/BULLET CHOP.json"
     }
   ]

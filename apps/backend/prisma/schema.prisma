@@ -1,0 +1,261 @@
+// Retrosampled data model.
+//
+// SQLite has no native enum or JSON column types: enum-ish columns are stored as
+// `String` and JSON payloads as serialized `String`. The unions that constrain
+// those values live in `@retrosampled/shared` (UserRole, SampleStatus,
+// NotificationType, ...). Swapping `provider` to `postgresql` later only
+// requires promoting those columns to real enums/jsonb.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String  @id @default(cuid())
+  email        String  @unique
+  passwordHash String
+  /// UserRole: "USER" | "ADMIN"
+  role         String  @default("USER")
+  username     String  @unique
+  displayName  String?
+  avatarKey    String?
+  bio          String?
+  /// JSON object of social links, e.g. {"x":"https://..."}
+  links        String  @default("{}")
+
+  followersCount Int @default(0)
+  followingCount Int @default(0)
+  uploadsCount   Int @default(0)
+  remakesCount   Int @default(0)
+
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  refreshTokens  RefreshToken[]
+  samples        Sample[]              @relation("SampleOwner")
+  collaborations SampleCollaborator[]
+  likes          Like[]
+  downloads      Download[]
+  comments       Comment[]
+  following      Follow[]              @relation("Follower")
+  followers      Follow[]              @relation("Following")
+  notifications  Notification[]        @relation("NotificationRecipient")
+  actorNotifications Notification[]    @relation("NotificationActor")
+  recentActivity RecentActivity[]
+
+  @@index([role])
+  @@index([createdAt])
+}
+
+model RefreshToken {
+  id           String    @id @default(cuid())
+  /// sha256 of the opaque token; the raw token is only ever in the cookie
+  tokenHash    String    @unique
+  userId       String
+  /// All tokens rotated from one login share a familyId; reuse revokes the family
+  familyId     String
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  replacedById String?
+  createdAt    DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+  @@index([expiresAt])
+}
+
+model Sample {
+  id       String  @id @default(cuid())
+  ownerId  String
+  parentId String?
+  /// Root of the remake tree (self id when the sample has no parent)
+  rootId   String
+  depth    Int     @default(0)
+
+  title       String
+  description String?
+  /// SampleStatus: "DRAFT" | "PUBLISHED" | "PRIVATE" | "PROCESSING" | "FAILED"
+  status      String  @default("DRAFT")
+
+  audioKey        String?
+  audioMime       String?
+  audioSizeBytes  Int?
+  coverKey        String?
+  peaksKey        String?
+  durationSec     Float?
+  bpm             Int?
+  musicalKey      String?
+  sampleType      String?
+  processingError String?
+
+  likesCount     Int @default(0)
+  downloadsCount Int @default(0)
+  playsCount     Int @default(0)
+  remakesCount   Int @default(0)
+  commentsCount  Int @default(0)
+
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  owner    User     @relation("SampleOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  parent   Sample?  @relation("SampleTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children Sample[] @relation("SampleTree")
+
+  tags           SampleTag[]
+  collaborators  SampleCollaborator[]
+  likes          Like[]
+  downloads      Download[]
+  comments       Comment[]
+  notifications  Notification[]
+  recentActivity RecentActivity[]
+
+  @@index([status, publishedAt])
+  @@index([ownerId, status, createdAt])
+  @@index([parentId])
+  @@index([rootId])
+  @@index([status, likesCount])
+  @@index([status, playsCount])
+}
+
+model Tag {
+  id         String   @id @default(cuid())
+  /// always lowercased
+  name       String   @unique
+  usageCount Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  samples SampleTag[]
+
+  @@index([usageCount])
+}
+
+model SampleTag {
+  sampleId String
+  tagId    String
+
+  sample Sample @relation(fields: [sampleId], references: [id], onDelete: Cascade)
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([sampleId, tagId])
+  @@index([tagId])
+}
+
+model SampleCollaborator {
+  sampleId  String
+  userId    String
+  createdAt DateTime @default(now())
+
+  sample Sample @relation(fields: [sampleId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([sampleId, userId])
+  @@index([userId])
+}
+
+model Like {
+  id        String   @id @default(cuid())
+  userId    String
+  sampleId  String
+  createdAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sample Sample @relation(fields: [sampleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, sampleId])
+  @@index([sampleId])
+  @@index([userId, createdAt])
+}
+
+model Download {
+  id        String   @id @default(cuid())
+  userId    String
+  sampleId  String
+  createdAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sample Sample @relation(fields: [sampleId], references: [id], onDelete: Cascade)
+
+  @@index([sampleId])
+  @@index([userId, createdAt])
+}
+
+model Comment {
+  id        String    @id @default(cuid())
+  sampleId  String
+  userId    String
+  /// One nesting level only: replies point at a top-level comment
+  parentId  String?
+  text      String
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  sample  Sample    @relation(fields: [sampleId], references: [id], onDelete: Cascade)
+  user    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent  Comment?  @relation("CommentThread", fields: [parentId], references: [id], onDelete: Cascade)
+  replies Comment[] @relation("CommentThread")
+
+  @@index([sampleId, createdAt])
+  @@index([parentId])
+  @@index([userId])
+}
+
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  follower  User @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followingId, createdAt])
+  @@index([followerId, createdAt])
+}
+
+model Notification {
+  id      String  @id @default(cuid())
+  /// recipient
+  userId  String
+  actorId String?
+  /// NotificationType: FOLLOW | LIKE | COMMENT | COMMENT_REPLY | REMAKE | SYSTEM
+  type    String
+
+  sampleId  String?
+  commentId String?
+  /// JSON payload with whatever the notification needs to render
+  data      String    @default("{}")
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user   User    @relation("NotificationRecipient", fields: [userId], references: [id], onDelete: Cascade)
+  actor  User?   @relation("NotificationActor", fields: [actorId], references: [id], onDelete: SetNull)
+  sample Sample? @relation(fields: [sampleId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, readAt])
+  @@index([sampleId])
+}
+
+model RecentActivity {
+  id       String   @id @default(cuid())
+  userId   String
+  sampleId String
+  openedAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sample Sample @relation(fields: [sampleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, sampleId])
+  @@index([userId, openedAt])
+}
