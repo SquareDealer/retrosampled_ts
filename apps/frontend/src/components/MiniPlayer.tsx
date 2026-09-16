@@ -211,7 +211,7 @@ export const MiniPlayer: React.FC = () => {
           aria-label="Volume"
           aria-valuetext={`${volumePercent}%`}
           style={{
-            background: `linear-gradient(to right, var(--text-primary) ${volumePercent}%, var(--border-strong) ${volumePercent}%)`,
+            backgroundImage: `linear-gradient(to right, var(--text-primary) ${volumePercent}%, var(--text-muted) ${volumePercent}%)`,
           }}
           onChange={handleVolumeChange}
         />

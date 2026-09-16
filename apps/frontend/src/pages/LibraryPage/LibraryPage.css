@@ -495,3 +495,10 @@
     min-width: 0;
   }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .library-skeleton::after,
+  .library-card--skeleton .library-card__cover::after {
+    animation: none;
+  }
+}

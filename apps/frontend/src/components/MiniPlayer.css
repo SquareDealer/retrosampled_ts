@@ -36,6 +36,17 @@
   transition: height 0.12s ease;
 }
 
+/* 24px pointer target without changing the 3px line: spans 12px above the
+   bar edge and 12px into it, stopping where the 32px transport buttons start. */
+.mini-player__seek::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -12px;
+  height: 24px;
+}
+
 .mini-player__seek:hover,
 .mini-player__seek:focus-visible {
   height: 5px;
@@ -75,7 +86,7 @@
 }
 
 .mini-player__cover-placeholder {
-  color: var(--text-muted);
+  color: var(--text-secondary);
   font-size: var(--fs-base);
   line-height: 1;
 }
@@ -129,15 +140,16 @@
 }
 
 .mini-player__meta-value {
-  font-size: var(--fs-base);
+  font-size: var(--fs-md);
   line-height: 1.2;
+  color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
 }
 
 .mini-player__meta-label {
-  font-size: var(--fs-2xs);
+  font-size: var(--fs-xs);
   line-height: 1;
-  color: var(--text-muted);
+  color: var(--text-secondary);
 }
 
 /* Center: transport */
@@ -199,10 +211,17 @@
   -webkit-appearance: none;
   appearance: none;
   width: 96px;
-  height: 2px;
+  height: 24px;
   margin: 0;
   padding: 0;
-  background: var(--border-strong);
+  /* 24px hit box; the 2px track is painted as a centered background image.
+     MiniPlayer.tsx sets background-image inline (fill gradient), so only
+     size/position/repeat live here. */
+  background-color: transparent;
+  background-image: linear-gradient(var(--text-muted), var(--text-muted));
+  background-size: 100% 2px;
+  background-position: center;
+  background-repeat: no-repeat;
   border-radius: 0;
   cursor: pointer;
 }

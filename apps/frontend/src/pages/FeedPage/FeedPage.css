@@ -339,3 +339,11 @@
     grid-column: 1 / -1;
   }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .feed-skeleton__avatar::after,
+  .feed-skeleton__line::after,
+  .feed-skeleton__waveform::after {
+    animation: none;
+  }
+}

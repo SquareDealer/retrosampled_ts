@@ -14,7 +14,7 @@
 }
 
 .sample-row-shell--compact {
-  margin-left: clamp(18px, 4vw, 54px);
+  margin-left: clamp(var(--space-4), 4vw, 56px);
 }
 
 .sample-row {
@@ -24,7 +24,7 @@
   padding-block: clamp(8px, 1vw, 12px);
   padding-inline: clamp(12px, 3cqw, 28px);
   border-bottom: 1px solid var(--border-subtle);
-  font-size: var(--fs-md);
+  font-size: var(--fs-sm);
   min-width: 0;
   cursor: pointer;
   transition: background-color 0.15s ease;
@@ -40,19 +40,19 @@
 }
 
 .sample-row--compact {
-  padding-block: clamp(6px, 0.8vw, 10px);
-  padding-inline: clamp(10px, 2cqw, 20px);
+  padding-block: clamp(var(--space-2), 0.8vw, var(--space-3));
+  padding-inline: clamp(var(--space-3), 2cqw, 20px);
   background: var(--bg-1);
   font-size: var(--fs-sm);
 }
 
 .sample-row--compact:hover {
-  background: #0d0d0d;
+  background: var(--bg-3);
 }
 
 .sample-row--related {
-  padding-block: 10px;
-  padding-inline: clamp(8px, 2cqw, 14px);
+  padding-block: var(--space-3);
+  padding-inline: clamp(var(--space-2), 2cqw, var(--space-4));
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -62,7 +62,7 @@
 .sample-row__left {
   display: flex;
   align-items: center;
-  gap: clamp(6px, 1vw, 12px);
+  gap: clamp(var(--space-2), 1vw, var(--space-3));
   flex: 0 1 clamp(180px, 30cqw, 300px);
   min-width: 0;
   overflow: hidden;
@@ -83,7 +83,7 @@
   border-radius: 50%;
   object-fit: cover;
   flex-shrink: 0;
-  border: 1px solid #ffffff15;
+  border: 1px solid var(--border);
 }
 
 .sample-row__info {
@@ -95,7 +95,7 @@
 
 .sample-row__author {
   font-size: var(--fs-sm);
-  color: var(--text-muted);
+  color: var(--text-secondary);
   text-decoration: none;
   transition: color 0.2s;
   white-space: nowrap;
@@ -134,15 +134,12 @@
 
 .sample-row__tags {
   display: flex;
-  gap: clamp(3px, 0.6vw, 5px);
+  gap: var(--space-1);
   flex-wrap: wrap;
 }
 
 .sample-row__tags .tag {
-  padding: 1px clamp(3px, 0.6vw, 5px);
-  color: var(--text-muted);
-  font-size: var(--fs-2xs);
-  border: 1px solid var(--border);
+  padding: 1px var(--space-1);
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -152,7 +149,7 @@
 .sample-row__center {
   display: flex;
   align-items: center;
-  gap: clamp(10px, 2vw, 32px);
+  gap: clamp(var(--space-3), 2vw, var(--space-6));
   flex: 1 1 auto;
   min-width: 0;
 }
@@ -249,7 +246,7 @@
   flex: 0 0 auto;
   min-width: 0;
   flex-wrap: nowrap;
-  column-gap: clamp(10px, 2vw, 24px);
+  column-gap: clamp(var(--space-3), 2vw, var(--space-5));
 }
 
 .sample-row__time,
@@ -305,8 +302,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   border: none;
   background: transparent;
   color: var(--text-secondary);
@@ -333,7 +330,7 @@
 .sample-row__remakes-toggle {
   width: 24px;
   height: 24px;
-  border: 1px solid #ffffff30;
+  border: 1px solid var(--border-strong);
   border-radius: 0;
   background: transparent;
   color: var(--text-secondary);
@@ -376,7 +373,7 @@
 
 .sample-row--compact .sample-row__author,
 .sample-row--compact .sample-row__likes-count {
-  font-size: var(--fs-2xs);
+  font-size: var(--fs-xs);
 }
 
 .sample-row--compact .sample-row__play > svg {
@@ -396,7 +393,7 @@
 /* Medium: drop tags, tighten metadata */
 @container sample-row (max-width: 679px) {
   .sample-row {
-    gap: clamp(8px, 2cqw, 14px);
+    gap: clamp(var(--space-2), 2cqw, var(--space-4));
   }
 
   .sample-row__tags {

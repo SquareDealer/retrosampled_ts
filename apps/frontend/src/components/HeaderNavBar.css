@@ -253,7 +253,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid #ffffff30;
+  border: 1px solid var(--border);
   background: transparent;
   color: #fff;
   padding: 0 10px;
@@ -265,6 +265,11 @@
 .header-nav-bar__icon-action:focus-visible {
   background: #ffffff10;
   border-color: #ffffff60;
+}
+
+.header-nav-bar__icon-action:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .header-nav-bar__notifications-count {
@@ -280,7 +285,7 @@
   background: #f4dd00;
   color: #000;
   border: 1px solid #000;
-  font-size: 10px;
+  font-size: var(--fs-xs);
   line-height: 1;
 }
 
@@ -410,5 +415,15 @@
   .header-nav-bar__search-input {
     padding-left: 10px;
     padding-right: 40px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .header-nav-bar__nav-item,
+  .header-nav-bar__action,
+  .header-nav-bar__account,
+  .header-nav-bar__icon-action,
+  .header-nav-bar__search-submit {
+    transition: none;
   }
 }
