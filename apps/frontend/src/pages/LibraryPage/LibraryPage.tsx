@@ -16,7 +16,7 @@ import {
   unlikeSample,
 } from "../../api/library";
 import { useAuth } from "../../auth/useAuth";
-import { useAudioContextManager } from "../../components/AudioContextManager";
+import { useAudioContextManager } from "../../components/useAudioContextManager";
 import { WaveformFromJsonForSample } from "../../components/waveform/WaveformFromJsonForSample";
 import { useInfiniteList } from "../../hooks/useInfiniteList";
 import { useToast } from "../../hooks/useToast";

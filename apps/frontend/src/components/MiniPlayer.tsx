@@ -1,6 +1,6 @@
 import React, { useRef } from "react";
 import { Link } from "react-router-dom";
-import { useAudioContextManager } from "./AudioContextManager";
+import { useAudioContextManager } from "./useAudioContextManager";
 import {
   PauseIcon,
   PlayIcon,

@@ -13,6 +13,10 @@ import "./UploadPage.css";
 type UploadPageProps = {
   /** Remake mode: the parent sample (`/sample/:id/remake` passes it). */
   parent?: SampleDetail | null;
+  /** Audio to preselect on step 1, e.g. a take exported from the flip editor. */
+  initialFile?: File | null;
+  /** Overrides the BPM inherited from the parent. */
+  initialBpm?: number;
 };
 
 const COPY = {
@@ -22,9 +26,9 @@ const COPY = {
   4: { title: "publish", lede: "this is how it'll look on the sample page." },
 } as const;
 
-const UploadPage: React.FC<UploadPageProps> = ({ parent = null }) => {
+const UploadPage: React.FC<UploadPageProps> = ({ parent = null, initialFile = null, initialBpm }) => {
   const navigate = useNavigate();
-  const wizard = useUploadWizard({ parent });
+  const wizard = useUploadWizard({ parent, initialFile, initialBpm });
   const { state } = wizard;
   const [toast, setToast] = useState<string | null>(null);
 

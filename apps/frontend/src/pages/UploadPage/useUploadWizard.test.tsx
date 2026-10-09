@@ -95,6 +95,19 @@ describe("useUploadWizard", () => {
     expect(result.current.state.step).toBe(1);
   });
 
+  it("preselects a flip take and its tempo over the parent's", () => {
+    const take = wavFile();
+    const { result } = renderHook(
+      () => useUploadWizard({ parent: { ...DRAFT, bpm: 90 }, initialFile: take, initialBpm: 93.6 }),
+      { wrapper: Wrapper }
+    );
+
+    expect(result.current.state.file).toBe(take);
+    expect(result.current.state.fileError).toBeNull();
+    expect(result.current.state.form.bpm).toBe("94");
+    expect(result.current.state.step).toBe(1);
+  });
+
   it("creates the draft on continue and moves to step 2; back returns to step 1", async () => {
     vi.mocked(uploadSample).mockResolvedValue(DRAFT);
     const { result } = renderHook(() => useUploadWizard(), { wrapper: Wrapper });

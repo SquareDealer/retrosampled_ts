@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useNavigate } from "react-router-dom";
 import type { SampleDetail } from "@retrosampled/shared";
 import { WaveformBars } from "../../components/waveform/WaveformBars";
 import { FlipAudioEngine, waveformPeaks } from "./FlipAudioEngine";
@@ -9,6 +10,7 @@ import {
   writeWorkspace,
   type WorkspaceMetadata,
 } from "./flipWorkspaceStorage";
+import { encodeWav, wavFileName } from "./wavEncoder";
 
 type Take = {
   id: string;
@@ -17,6 +19,9 @@ type Take = {
   buffer: AudioBuffer;
   peaks: number[];
 };
+/** Router state `/sample/:id/remake` accepts to preload a flip take. */
+export type RemakeTakeState = { remakeFile: File; remakeBpm?: number };
+
 export type WorkspaceControls = {
   rootSampleId: string;
   bpm: number;
@@ -47,6 +52,7 @@ export function FlipWorkspace({
   engine: FlipAudioEngine;
   userId: string;
 }) {
+  const navigate = useNavigate();
   const key = projectKey(userId, sample.id);
   const [takes, setTakes] = useState<Take[]>(() => [
     {
@@ -150,6 +156,25 @@ export function FlipWorkspace({
   }, [ready, takes, activeId, bpm, key, sample.id]);
 
   const active = takes.find((take) => take.id === activeId)!;
+  const takeFile = (take: Take) =>
+    new File([encodeWav(take.buffer)], wavFileName(sample.title, take.name), {
+      type: "audio/wav",
+    });
+  const downloadTake = (take: Take) => {
+    const url = URL.createObjectURL(takeFile(take));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = wavFileName(sample.title, take.name);
+    link.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 0);
+  };
+  const publishTake = (take: Take) => {
+    const state: RemakeTakeState = {
+      remakeFile: takeFile(take),
+      remakeBpm: take.sourceBpm > 0 ? take.sourceBpm : undefined,
+    };
+    navigate(`/sample/${sample.id}/remake`, { state });
+  };
   const select = (take: Take) => {
     if (take.id === activeId) return;
     engine.setBuffer(take.buffer);
@@ -233,6 +258,26 @@ export function FlipWorkspace({
                 </button>
               ))}
             </div>
+            {active.id !== sample.id ? (
+              <div className="flip-take-actions">
+                <button
+                  type="button"
+                  className="flip-button"
+                  disabled={busy}
+                  onClick={() => downloadTake(active)}
+                >
+                  Download WAV
+                </button>
+                <button
+                  type="button"
+                  className="flip-button flip-button--primary"
+                  disabled={busy}
+                  onClick={() => publishTake(active)}
+                >
+                  Publish as remake
+                </button>
+              </div>
+            ) : null}
           </section>
         ),
       }}

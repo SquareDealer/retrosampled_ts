@@ -19,7 +19,7 @@ vi.mock("./FlipAudioEngine", () => ({
 }));
 
 const session = vi.hoisted(() => ({ acquire: vi.fn(() => vi.fn()) }));
-vi.mock("../../components/AudioContextManager", () => ({
+vi.mock("../../components/useAudioContextManager", () => ({
   useAudioContextManager: () => ({ acquireEditorSession: session.acquire }),
 }));
 vi.mock("../../auth/useAuth", () => ({

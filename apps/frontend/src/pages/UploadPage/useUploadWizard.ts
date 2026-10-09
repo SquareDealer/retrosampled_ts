@@ -28,6 +28,10 @@ export type MetadataErrors = Partial<Record<"title" | "bpm" | "musicalKey" | "ta
 export type UploadWizardOptions = {
   /** Parent sample when the wizard runs in remake mode (`/sample/:id/remake`). */
   parent?: SampleDetail | null;
+  /** Audio preselected on step 1 (a flip take); the user still confirms it. */
+  initialFile?: File | null;
+  /** BPM to prefill instead of the parent's. */
+  initialBpm?: number;
   /** Poll interval for step 3, exposed for tests. */
   pollIntervalMs?: number;
 };
@@ -117,7 +121,7 @@ const nextStepFor = (sample: SampleDetail, requested: WizardStep): WizardStep =>
  * (`?draft=<id>&step=<n>`) so a refresh resumes where the user left off.
  */
 export function useUploadWizard(options: UploadWizardOptions = {}) {
-  const { parent = null, pollIntervalMs = 1500 } = options;
+  const { parent = null, initialFile = null, initialBpm, pollIntervalMs = 1500 } = options;
   const navigate = useNavigate();
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -125,14 +129,16 @@ export function useUploadWizard(options: UploadWizardOptions = {}) {
   const stepParam = searchParams.get("step");
 
   const [step, setStepState] = useState<WizardStep>(1);
-  const [file, setFile] = useState<File | null>(null);
-  const [fileError, setFileError] = useState<string | null>(null);
+  const [file, setFile] = useState<File | null>(initialFile);
+  const [fileError, setFileError] = useState<string | null>(() =>
+    initialFile ? validateAudioFile(initialFile) : null
+  );
   const [uploadPercent, setUploadPercent] = useState<number | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [sample, setSample] = useState<SampleDetail | null>(null);
   const [form, setForm] = useState<MetadataForm>(() => ({
     ...EMPTY_FORM,
-    bpm: parent?.bpm ? String(parent.bpm) : "",
+    bpm: initialBpm ? String(Math.round(initialBpm)) : parent?.bpm ? String(parent.bpm) : "",
     musicalKey: parent?.musicalKey ?? "",
     sampleType: (parent?.sampleType as SampleType | null) ?? "",
     tags: parent?.tags ?? [],

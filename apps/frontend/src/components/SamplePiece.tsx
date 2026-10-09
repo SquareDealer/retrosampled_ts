@@ -1,7 +1,7 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { WaveformFromJsonForSample } from "./waveform/WaveformFromJsonForSample";
-import { useAudioContextManager } from "./AudioContextManager";
+import { useAudioContextManager } from "./useAudioContextManager";
 import { Sample } from "@retrosampled/shared";
 import { HeartIcon, PauseIcon, PlayIcon } from "./icons";
 import { useElementWidth } from "../hooks/useElementWidth";

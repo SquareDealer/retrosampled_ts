@@ -1,7 +1,7 @@
 // WaveformFromJsonForSample.tsx
 import React, { useEffect, useState } from "react";
 import { WaveformBars, WaveformBarsProps } from "./WaveformBars";
-import { useAudioContextManager } from "../AudioContextManager";
+import { useAudioContextManager } from "../useAudioContextManager";
 import { Sample } from "@retrosampled/shared";
 
 // ─────────────────────────────────────────────────────────────

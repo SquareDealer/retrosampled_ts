@@ -257,6 +257,13 @@
 .flip-take-tempo {
   display: block;
 }
+.flip-take-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 12px;
+}
 .flip-button {
   cursor: pointer;
   border: 1px solid #ffffff35;

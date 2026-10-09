@@ -192,7 +192,6 @@ export class AdminService {
 
     this.logger.log(`admin ${actor.username} deleted sample ${sample.id}`);
 
-    // TODO(Task 3.1a): remove the audio / cover / peaks objects from StoragePort.
     if (this.deletionHook) {
       await this.deletionHook.onSampleDeleted(sample);
     }

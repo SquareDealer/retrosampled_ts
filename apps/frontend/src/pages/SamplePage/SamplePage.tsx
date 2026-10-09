@@ -7,7 +7,7 @@ import { deleteSample, fetchSampleById, reportPlay, requestDownload } from "../.
 import { createComment, fetchComments } from "../../api/comments";
 import { setFollowing } from "../../api/follows";
 import { useAuth } from "../../auth/useAuth";
-import { useAudioContextManager } from "../../components/AudioContextManager";
+import { useAudioContextManager } from "../../components/useAudioContextManager";
 import { useLikeSample } from "../../hooks/useLikeSample";
 import { CommentsSection } from "../../components/sample-page/CommentsSection";
 import { SampleActionsBar } from "../../components/sample-page/SampleActionsBar";

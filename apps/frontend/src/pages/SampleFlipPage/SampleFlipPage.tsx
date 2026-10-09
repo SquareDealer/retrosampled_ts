@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import type { SampleDetail } from "@retrosampled/shared";
 import { fetchSampleById } from "../../api/samples";
 import { useAuth } from "../../auth/useAuth";
-import { useAudioContextManager } from "../../components/AudioContextManager";
+import { useAudioContextManager } from "../../components/useAudioContextManager";
 import { WaveformBars } from "../../components/waveform/WaveformBars";
 import { useElementWidth } from "../../hooks/useElementWidth";
 import {

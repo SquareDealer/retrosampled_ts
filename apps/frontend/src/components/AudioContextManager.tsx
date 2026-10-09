@@ -1,62 +1,21 @@
 import React, {
-  createContext,
   useRef,
   useState,
   PropsWithChildren,
   useCallback,
-  useContext,
   useEffect,
 } from "react";
 import { Howl, Howler } from "howler";
 import { Sample } from "@retrosampled/shared";
+import {
+  AudioManagerContext,
+  type AudioContextManager,
+  type PlayOptions,
+  type PlayerState,
+} from "./audioManagerContext";
 
 // Автоматически переходить к следующему семплу очереди по окончании трека
 const AUTO_ADVANCE = true;
-
-// ─────────────────────────────────────────────────────────────
-// Types & Interfaces
-// ─────────────────────────────────────────────────────────────
-
-export type PlayOptions = {
-  startProgress?: number; // 0..1
-  queue?: Sample[];
-};
-
-export interface PlayerState {
-  currentId: string | null; // id текущего семпла (для удобства снаружи)
-  isPlaying: boolean;
-  progress: number; // 0..1
-  isReady: boolean; // загружен ли текущий трек в плеер
-  duration: number; // секунды; 0 до onload
-  volume: number; // 0..1
-}
-
-export interface AudioContextManager {
-  isEditorActive: boolean;
-  acquireEditorSession: () => () => void;
-  state: PlayerState;
-  currentSample: Sample | null;
-
-  // можно вызывать как play(sample), play(sample, startProgress) или play(sample, { startProgress, queue })
-  play: (sample: Sample, options?: number | PlayOptions) => void;
-  togglePlay: () => void;
-  seekTo: (progress: number) => void;
-
-  next: () => void;
-  prev: () => void;
-  hasNext: boolean;
-  hasPrev: boolean;
-
-  setVolume: (volume: number) => void;
-
-  queue: Sample[];
-}
-
-// ─────────────────────────────────────────────────────────────
-// Context
-// ─────────────────────────────────────────────────────────────
-
-const AudioManagerContext = createContext<AudioContextManager | null>(null);
 
 const sameId = (a: Sample["id"], b: Sample["id"] | null) => b !== null && String(a) === String(b);
 
@@ -456,16 +415,4 @@ export const AudioManagerProvider: React.FC<PropsWithChildren> = ({ children }) 
       {children}
     </AudioManagerContext.Provider>
   );
-};
-
-// ─────────────────────────────────────────────────────────────
-// Hook to Access AudioManager
-// ─────────────────────────────────────────────────────────────
-
-export const useAudioContextManager = (): AudioContextManager => {
-  const context = useContext(AudioManagerContext);
-  if (!context) {
-    throw new Error("useAudioContextManager must be used within AudioManagerProvider");
-  }
-  return context;
 };

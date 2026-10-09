@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import type { SampleDetail } from "@retrosampled/shared";
 import { fetchSampleById } from "../../api/samples";
+import type { RemakeTakeState } from "../SampleFlipPage/FlipWorkspace";
 import UploadPage from "../UploadPage/UploadPage";
 import "../UploadPage/UploadPage.css";
 
@@ -10,6 +11,7 @@ type Status = "loading" | "ready" | "missing" | "error";
 /** `/sample/:sampleId/remake` — the upload wizard in remake mode. */
 const RemakePage: React.FC = () => {
   const { sampleId = "" } = useParams();
+  const take = (useLocation().state ?? null) as Partial<RemakeTakeState> | null;
   const [status, setStatus] = useState<Status>("loading");
   const [parent, setParent] = useState<SampleDetail | null>(null);
   const [errorText, setErrorText] = useState<string>("");
@@ -61,7 +63,13 @@ const RemakePage: React.FC = () => {
     );
   }
 
-  return <UploadPage parent={parent} />;
+  return (
+    <UploadPage
+      parent={parent}
+      initialFile={take?.remakeFile instanceof File ? take.remakeFile : null}
+      initialBpm={take?.remakeBpm}
+    />
+  );
 };
 
 export default RemakePage;

@@ -2,10 +2,8 @@ import { act, cleanup, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Sample } from "@retrosampled/shared";
 import { Howl } from "howler";
-import {
-  AudioManagerProvider,
-  useAudioContextManager,
-} from "./AudioContextManager";
+import { AudioManagerProvider } from "./AudioContextManager";
+import { useAudioContextManager } from "./useAudioContextManager";
 
 vi.mock("howler", () => ({
   Howl: vi.fn(() => ({ off: vi.fn(), unload: vi.fn(), play: vi.fn() })),

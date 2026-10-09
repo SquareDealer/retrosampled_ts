@@ -6,7 +6,7 @@ import { AuthContext, type AuthContextValue, type AuthStatus } from "../../auth/
 import * as http from "../../api/http";
 import ProfilePage from "./ProfilePage";
 
-vi.mock("../../components/AudioContextManager", () => ({
+vi.mock("../../components/useAudioContextManager", () => ({
   useAudioContextManager: () => ({
     currentSample: null,
     state: { isPlaying: false, isReady: false },
